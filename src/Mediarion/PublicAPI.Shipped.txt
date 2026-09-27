@@ -1,0 +1,80 @@
+#nullable enable
+Mediarion.GeneratedMediatorAttribute
+Mediarion.GeneratedMediatorAttribute.GeneratedMediatorAttribute() -> void
+Mediarion.GeneratedMediatorAttribute.RegisterRequestProcessors.get -> bool
+Mediarion.GeneratedMediatorAttribute.RegisterRequestProcessors.set -> void
+Mediarion.IBaseRequest
+Mediarion.IMediator
+Mediarion.INotification
+Mediarion.INotificationHandler<TNotification>
+Mediarion.INotificationHandler<TNotification>.Handle(TNotification notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Mediarion.INotificationPublisher
+Mediarion.INotificationPublisher.Publish(System.Collections.Generic.IReadOnlyList<Mediarion.NotificationHandlerExecutor!>! handlers, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Mediarion.IPipelineBehavior<TRequest, TResponse>
+Mediarion.IPipelineBehavior<TRequest, TResponse>.Handle(TRequest request, Mediarion.RequestHandlerDelegate<TResponse>! next, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResponse>!
+Mediarion.IPublisher
+Mediarion.IPublisher.Publish(object! notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Mediarion.IPublisher.Publish<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Mediarion.IRequest
+Mediarion.IRequest<TResponse>
+Mediarion.IRequestHandler<TRequest, TResponse>
+Mediarion.IRequestHandler<TRequest, TResponse>.Handle(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResponse>!
+Mediarion.IRequestHandler<TRequest>
+Mediarion.IRequestHandler<TRequest>.Handle(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Mediarion.ISender
+Mediarion.ISender.Send(object! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<object?>!
+Mediarion.ISender.Send<TResponse>(Mediarion.IRequest<TResponse>! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResponse>!
+Mediarion.MediarionException
+Mediarion.MediarionException.MediarionException() -> void
+Mediarion.MediarionException.MediarionException(string! message) -> void
+Mediarion.MediarionException.MediarionException(string! message, System.Exception! innerException) -> void
+Mediarion.Mediator
+Mediarion.Mediator.Mediator(System.IServiceProvider! services) -> void
+Mediarion.Mediator.Mediator(System.IServiceProvider! services, Mediarion.INotificationPublisher! publisher) -> void
+Mediarion.Mediator.Publish(object! notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Mediarion.Mediator.Publish<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Mediarion.Mediator.Send(object! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<object?>!
+Mediarion.Mediator.Send<TResponse>(Mediarion.IRequest<TResponse>! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResponse>!
+Mediarion.NotificationHandlerExecutor
+Mediarion.NotificationPipeline
+Mediarion.NotificationPublishers.ForeachAwaitPublisher
+Mediarion.NotificationPublishers.ForeachAwaitPublisher.ForeachAwaitPublisher() -> void
+Mediarion.NotificationPublishers.ForeachAwaitPublisher.Publish(System.Collections.Generic.IReadOnlyList<Mediarion.NotificationHandlerExecutor!>! handlers, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Mediarion.NotificationPublishers.TaskWhenAllPublisher
+Mediarion.NotificationPublishers.TaskWhenAllPublisher.Publish(System.Collections.Generic.IReadOnlyList<Mediarion.NotificationHandlerExecutor!>! handlers, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Mediarion.NotificationPublishers.TaskWhenAllPublisher.TaskWhenAllPublisher() -> void
+Mediarion.Pipeline.IRequestPostProcessor<TRequest, TResponse>
+Mediarion.Pipeline.IRequestPostProcessor<TRequest, TResponse>.Process(TRequest request, TResponse response, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Mediarion.Pipeline.IRequestPreProcessor<TRequest>
+Mediarion.Pipeline.IRequestPreProcessor<TRequest>.Process(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Mediarion.Pipeline.RequestPostProcessorBehavior<TRequest, TResponse>
+Mediarion.Pipeline.RequestPostProcessorBehavior<TRequest, TResponse>.Handle(TRequest request, Mediarion.RequestHandlerDelegate<TResponse>! next, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResponse>!
+Mediarion.Pipeline.RequestPostProcessorBehavior<TRequest, TResponse>.RequestPostProcessorBehavior(System.Collections.Generic.IEnumerable<Mediarion.Pipeline.IRequestPostProcessor<TRequest, TResponse>!>! processors) -> void
+Mediarion.Pipeline.RequestPreProcessorBehavior<TRequest, TResponse>
+Mediarion.Pipeline.RequestPreProcessorBehavior<TRequest, TResponse>.Handle(TRequest request, Mediarion.RequestHandlerDelegate<TResponse>! next, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResponse>!
+Mediarion.Pipeline.RequestPreProcessorBehavior<TRequest, TResponse>.RequestPreProcessorBehavior(System.Collections.Generic.IEnumerable<Mediarion.Pipeline.IRequestPreProcessor<TRequest>!>! processors) -> void
+Mediarion.RequestHandlerDelegate<TResponse>
+Mediarion.RequestPipeline
+Mediarion.Unit
+Mediarion.Unit.CompareTo(Mediarion.Unit other) -> int
+Mediarion.Unit.CompareTo(object? obj) -> int
+Mediarion.Unit.Equals(Mediarion.Unit other) -> bool
+Mediarion.Unit.Unit() -> void
+Mediarion.VoidHandlerAdapter<TRequest>
+Mediarion.VoidHandlerAdapter<TRequest>.Handle(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Mediarion.Unit>!
+Mediarion.VoidHandlerAdapter<TRequest>.VoidHandlerAdapter(Mediarion.IRequestHandler<TRequest>! inner) -> void
+override Mediarion.Unit.Equals(object? obj) -> bool
+override Mediarion.Unit.GetHashCode() -> int
+override Mediarion.Unit.ToString() -> string!
+static Mediarion.NotificationPipeline.Run<TNotification>(TNotification notification, System.IServiceProvider! services, Mediarion.INotificationPublisher! publisher, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+static Mediarion.RequestPipeline.Run<TRequest, TResponse>(TRequest request, System.IServiceProvider! services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResponse>!
+static Mediarion.Unit.Task.get -> System.Threading.Tasks.Task<Mediarion.Unit>!
+static Mediarion.Unit.Value.get -> Mediarion.Unit
+static Mediarion.Unit.operator !=(Mediarion.Unit left, Mediarion.Unit right) -> bool
+static Mediarion.Unit.operator <(Mediarion.Unit left, Mediarion.Unit right) -> bool
+static Mediarion.Unit.operator <=(Mediarion.Unit left, Mediarion.Unit right) -> bool
+static Mediarion.Unit.operator ==(Mediarion.Unit left, Mediarion.Unit right) -> bool
+static Mediarion.Unit.operator >(Mediarion.Unit left, Mediarion.Unit right) -> bool
+static Mediarion.Unit.operator >=(Mediarion.Unit left, Mediarion.Unit right) -> bool
+virtual Mediarion.NotificationHandlerExecutor.Invoke(object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+virtual Mediarion.RequestHandlerDelegate<TResponse>.Invoke(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResponse>!
