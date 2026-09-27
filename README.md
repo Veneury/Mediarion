@@ -50,6 +50,24 @@ What is missing, and what this is for: a mediator that is a **drop-in** — chan
 your handlers, behaviours and registrations compile as they are — that runs on .NET Framework 4.7.2
 as well as .NET 10, and that carries no dependencies of its own.
 
+## How much that is worth so far
+
+`samples/Mediarion.Migration` configures one ordering layer twice over a shared domain, once on
+MediatR 12.5.0 and once on Mediarion, drives both through the same script and fails when they
+stop agreeing step for step. It covers a request with a response, a request without one, a
+notification with two handlers, an open-generic behaviour, a closed one that short-circuits, and
+a request sent as `object`.
+
+The source of both layers is embedded in the sample and compared as text. **The whole difference
+is two lines**: the `using` and the namespace. CI fails if a third ever appears.
+
+Being clear about what that is not: matching shapes is a smaller claim than "your migration will
+be easy". It says nothing about your build, your container, or thirty handlers written by
+somebody who does not know both libraries.
+
+Writing it found one real difference, since fixed. `Send(object)` on a request with no response
+gave `null` here and `Unit.Value` there — the nicer answer, and the wrong one for a drop-in.
+
 ## What it is, so far
 
 **0.1 is not released.** It is being built in the open and the shape below is what works today.

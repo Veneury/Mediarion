@@ -123,14 +123,18 @@ namespace Mediarion.Tests
             response.ShouldBe("pong there");
         }
 
+        /// <remarks>
+        /// Unit and not null. Null reads better and would be a difference from the library this
+        /// one is a drop-in for, which is the one thing it must not be.
+        /// </remarks>
         [Fact]
-        public async Task A_request_with_nothing_to_give_back_answers_with_nothing()
+        public async Task A_request_with_nothing_to_give_back_answers_with_unit()
         {
             ServiceProvider provider = Build();
 
             object? response = await provider.GetRequiredService<ISender>().Send((object)new Record());
 
-            response.ShouldBeNull();
+            response.ShouldBe(Unit.Value);
         }
 
         [Fact]

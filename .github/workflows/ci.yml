@@ -43,6 +43,13 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=results.trx"
 
+      # The sample configures one ordering layer twice, on MediatR 12.5.0 and on Mediarion, and
+      # fails when the two stop agreeing step for step. It also compares the two layers as text
+      # and fails if they differ by more than the using and the namespace, which is the readme's
+      # claim written so a machine can check it.
+      - name: Run the migration sample
+        run: dotnet run --project samples/Mediarion.Migration/Mediarion.Migration.csproj --no-build --configuration Release
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7

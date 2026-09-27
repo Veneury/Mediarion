@@ -88,7 +88,11 @@ namespace Mediarion.Execution
             var inner = new RequestWrapperImpl<TRequest, TResponse>();
             TResponse response = await inner.Handle(request, services, cancellationToken).ConfigureAwait(false);
 
-            return response is Unit ? null : response;
+            // A request with nothing to give back answers with Unit, and that is what comes out
+            // here too rather than null. Returning null instead reads better and is wrong: code
+            // written against the other library and moved over would start seeing a null it
+            // never saw before, which is the one thing a drop-in must not do.
+            return response;
         }
     }
 

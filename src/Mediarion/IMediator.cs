@@ -18,7 +18,7 @@ namespace Mediarion
         /// <summary>Sends a request whose type is only known at run time.</summary>
         /// <param name="request">The request.</param>
         /// <param name="cancellationToken">Cancels the operation.</param>
-        /// <returns>The response, boxed, or <see langword="null"/> for a request that answers with nothing.</returns>
+        /// <returns>The response, boxed. A request with nothing to give back answers with <see cref="Unit"/>.</returns>
         Task<object?> Send(object request, CancellationToken cancellationToken = default);
     }
 
