@@ -36,45 +36,8 @@ namespace Mediarion.Execution
         internal override Task<TResponse> Handle(
             object request,
             IServiceProvider services,
-            CancellationToken cancellationToken)
-        {
-            var handler = (IRequestHandler<TRequest, TResponse>?)
-                services.GetService(typeof(IRequestHandler<TRequest, TResponse>));
-
-            if (handler is null)
-            {
-                throw MediarionException.NoHandler(typeof(TRequest));
-            }
-
-            var typed = (TRequest)request;
-
-            Task<TResponse> Handle(CancellationToken token) =>
-                handler.Handle(typed, token);
-
-            var behaviours = (IEnumerable<IPipelineBehavior<TRequest, TResponse>>?)
-                services.GetService(typeof(IEnumerable<IPipelineBehavior<TRequest, TResponse>>));
-
-            if (behaviours is null)
-            {
-                return Handle(cancellationToken);
-            }
-
-            // Outermost first is how they read in a registration, so the chain is built from the
-            // inside out and the list has to be walked backwards to get there.
-            var ordered = new List<IPipelineBehavior<TRequest, TResponse>>(behaviours);
-
-            RequestHandlerDelegate<TResponse> next = Handle;
-
-            for (int i = ordered.Count - 1; i >= 0; i--)
-            {
-                IPipelineBehavior<TRequest, TResponse> behaviour = ordered[i];
-                RequestHandlerDelegate<TResponse> inner = next;
-
-                next = token => behaviour.Handle(typed, inner, token);
-            }
-
-            return next(cancellationToken);
-        }
+            CancellationToken cancellationToken) =>
+            RequestPipeline.Run<TRequest, TResponse>((TRequest)request, services, cancellationToken);
     }
 
     internal sealed class BoxedRequestWrapperImpl<TRequest, TResponse> : RequestWrapper
@@ -96,58 +59,23 @@ namespace Mediarion.Execution
         }
     }
 
-    /// <summary>
-    /// A handler that answers with nothing, seen as one that answers with <see cref="Unit"/>.
-    /// </summary>
-    /// <remarks>
-    /// The pipeline is generic over a response, so a request with no response still needs one to
-    /// be generic over. Adapting at registration rather than at send time keeps the send path
-    /// free of the question.
-    /// </remarks>
-    internal sealed class VoidHandlerAdapter<TRequest> : IRequestHandler<TRequest, Unit>
-        where TRequest : IRequest
-    {
-        private readonly IRequestHandler<TRequest> inner;
-
-        public VoidHandlerAdapter(IRequestHandler<TRequest> inner)
-        {
-            this.inner = inner;
-        }
-
-        public async Task<Unit> Handle(TRequest request, CancellationToken cancellationToken)
-        {
-            await inner.Handle(request, cancellationToken).ConfigureAwait(false);
-            return Unit.Value;
-        }
-    }
-
     internal abstract class NotificationWrapper
     {
-        internal abstract IReadOnlyList<NotificationHandlerExecutor> Handlers(IServiceProvider services);
+        internal abstract Task Handle(
+            object notification,
+            IServiceProvider services,
+            INotificationPublisher publisher,
+            CancellationToken cancellationToken);
     }
 
     internal sealed class NotificationWrapperImpl<TNotification> : NotificationWrapper
         where TNotification : INotification
     {
-        internal override IReadOnlyList<NotificationHandlerExecutor> Handlers(IServiceProvider services)
-        {
-            var handlers = (IEnumerable<INotificationHandler<TNotification>>?)
-                services.GetService(typeof(IEnumerable<INotificationHandler<TNotification>>));
-
-            if (handlers is null)
-            {
-                return Array.Empty<NotificationHandlerExecutor>();
-            }
-
-            var executors = new List<NotificationHandlerExecutor>();
-
-            foreach (INotificationHandler<TNotification> handler in handlers)
-            {
-                INotificationHandler<TNotification> captured = handler;
-                executors.Add((notification, token) => captured.Handle((TNotification)notification, token));
-            }
-
-            return executors;
-        }
+        internal override Task Handle(
+            object notification,
+            IServiceProvider services,
+            INotificationPublisher publisher,
+            CancellationToken cancellationToken) =>
+            NotificationPipeline.Run((TNotification)notification, services, publisher, cancellationToken);
     }
 }

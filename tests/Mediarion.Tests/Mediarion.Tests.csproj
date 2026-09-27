@@ -19,6 +19,9 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Mediarion/Mediarion.csproj" />
     <ProjectReference Include="../../src/Mediarion.Extensions.DependencyInjection/Mediarion.Extensions.DependencyInjection.csproj" />
+    <ProjectReference Include="../../src/Mediarion.SourceGenerator/Mediarion.SourceGenerator.csproj"
+                     OutputItemType="Analyzer"
+                     ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,6 @@
 #nullable enable
+Mediarion.GeneratedMediatorAttribute
+Mediarion.GeneratedMediatorAttribute.GeneratedMediatorAttribute() -> void
 Mediarion.IBaseRequest
 Mediarion.IMediator
 Mediarion.INotification
@@ -32,6 +34,7 @@ Mediarion.Mediator.Publish<TNotification>(TNotification notification, System.Thr
 Mediarion.Mediator.Send(object! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<object?>!
 Mediarion.Mediator.Send<TResponse>(Mediarion.IRequest<TResponse>! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResponse>!
 Mediarion.NotificationHandlerExecutor
+Mediarion.NotificationPipeline
 Mediarion.NotificationPublishers.ForeachAwaitPublisher
 Mediarion.NotificationPublishers.ForeachAwaitPublisher.ForeachAwaitPublisher() -> void
 Mediarion.NotificationPublishers.ForeachAwaitPublisher.Publish(System.Collections.Generic.IReadOnlyList<Mediarion.NotificationHandlerExecutor!>! handlers, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
@@ -49,14 +52,20 @@ Mediarion.Pipeline.RequestPreProcessorBehavior<TRequest, TResponse>
 Mediarion.Pipeline.RequestPreProcessorBehavior<TRequest, TResponse>.Handle(TRequest request, Mediarion.RequestHandlerDelegate<TResponse>! next, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResponse>!
 Mediarion.Pipeline.RequestPreProcessorBehavior<TRequest, TResponse>.RequestPreProcessorBehavior(System.Collections.Generic.IEnumerable<Mediarion.Pipeline.IRequestPreProcessor<TRequest>!>! processors) -> void
 Mediarion.RequestHandlerDelegate<TResponse>
+Mediarion.RequestPipeline
 Mediarion.Unit
 Mediarion.Unit.CompareTo(Mediarion.Unit other) -> int
 Mediarion.Unit.CompareTo(object? obj) -> int
 Mediarion.Unit.Equals(Mediarion.Unit other) -> bool
 Mediarion.Unit.Unit() -> void
+Mediarion.VoidHandlerAdapter<TRequest>
+Mediarion.VoidHandlerAdapter<TRequest>.Handle(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Mediarion.Unit>!
+Mediarion.VoidHandlerAdapter<TRequest>.VoidHandlerAdapter(Mediarion.IRequestHandler<TRequest>! inner) -> void
 override Mediarion.Unit.Equals(object? obj) -> bool
 override Mediarion.Unit.GetHashCode() -> int
 override Mediarion.Unit.ToString() -> string!
+static Mediarion.NotificationPipeline.Run<TNotification>(TNotification notification, System.IServiceProvider! services, Mediarion.INotificationPublisher! publisher, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+static Mediarion.RequestPipeline.Run<TRequest, TResponse>(TRequest request, System.IServiceProvider! services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResponse>!
 static Mediarion.Unit.Task.get -> System.Threading.Tasks.Task<Mediarion.Unit>!
 static Mediarion.Unit.Value.get -> Mediarion.Unit
 static Mediarion.Unit.operator !=(Mediarion.Unit left, Mediarion.Unit right) -> bool

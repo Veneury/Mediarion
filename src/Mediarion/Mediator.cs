@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
@@ -143,11 +142,7 @@ namespace Mediarion
                 static type => (NotificationWrapper)Activator.CreateInstance(
                     typeof(NotificationWrapperImpl<>).MakeGenericType(type))!);
 
-            IReadOnlyList<NotificationHandlerExecutor> handlers = wrapper.Handlers(services);
-
-            return handlers.Count == 0
-                ? Task.CompletedTask
-                : publisher.Publish(handlers, notification, cancellationToken);
+            return wrapper.Handle(notification, services, publisher, cancellationToken);
         }
     }
 }
