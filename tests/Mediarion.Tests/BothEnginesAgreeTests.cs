@@ -13,6 +13,12 @@ namespace Mediarion.Tests
     {
     }
 
+    /// <summary>The same thing again, asking for the processors to be registered too.</summary>
+    [GeneratedMediator(RegisterRequestProcessors = true)]
+    public sealed partial class GeneratedProcessingMediator
+    {
+    }
+
     /// <summary>
     /// The guarantee the generated engine rests on. One works out which handler answers a
     /// request while the program runs, the other had the same question answered while the
@@ -40,6 +46,64 @@ namespace Mediarion.Tests
 
         private static GeneratedTestMediator Generated(ServiceProvider provider) =>
             new GeneratedTestMediator(provider, provider.GetRequiredService<INotificationPublisher>());
+
+        /// <summary>
+        /// The registration the generator writes, against the one that walks the assembly.
+        /// </summary>
+        /// <remarks>
+        /// A scan is reflection, so an application published ahead of time cannot have one. The
+        /// generated registration names every handler instead, and the two have to wire up the
+        /// same thing or the two ways of starting the application are two applications.
+        /// </remarks>
+        [Fact]
+        public async Task The_generated_registration_wires_up_the_same_thing()
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<Ledger>();
+            services.AddSingleton<Log>();
+            services.AddSingleton<Steps>();
+            services.AddGeneratedTestMediator();
+
+            using ServiceProvider provider = services.BuildServiceProvider();
+
+            (await provider.GetRequiredService<ISender>().Send(new Ping { Message = "there" }))
+                .ShouldBe("pong there");
+
+            await provider.GetRequiredService<IPublisher>().Publish(new Arrived { Who = "Ada" });
+            provider.GetRequiredService<Log>().Lines.Count.ShouldBe(2);
+        }
+
+        /// <remarks>
+        /// Off by default on both, so a processor lying in the project does not start running
+        /// because somebody registered a mediator.
+        /// </remarks>
+        [Fact]
+        public async Task The_generated_registration_leaves_the_processors_alone_unless_asked()
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<Steps>();
+            services.AddGeneratedTestMediator();
+
+            using ServiceProvider provider = services.BuildServiceProvider();
+
+            await provider.GetRequiredService<ISender>().Send(new Measure { What = "four" });
+
+            provider.GetRequiredService<Steps>().Taken.ShouldBe(new[] { "handled" });
+        }
+
+        [Fact]
+        public async Task The_generated_registration_takes_the_processors_when_it_is_asked()
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<Steps>();
+            services.AddGeneratedProcessingMediator();
+
+            using ServiceProvider provider = services.BuildServiceProvider();
+
+            await provider.GetRequiredService<ISender>().Send(new Measure { What = "four" });
+
+            provider.GetRequiredService<Steps>().Taken.ShouldBe(new[] { "before", "handled", "after 4" });
+        }
 
         [Fact]
         public async Task They_agree_on_a_request_with_a_response()

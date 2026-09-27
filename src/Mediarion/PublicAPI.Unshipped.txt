@@ -1,6 +1,8 @@
 #nullable enable
 Mediarion.GeneratedMediatorAttribute
 Mediarion.GeneratedMediatorAttribute.GeneratedMediatorAttribute() -> void
+Mediarion.GeneratedMediatorAttribute.RegisterRequestProcessors.get -> bool
+Mediarion.GeneratedMediatorAttribute.RegisterRequestProcessors.set -> void
 Mediarion.IBaseRequest
 Mediarion.IMediator
 Mediarion.INotification

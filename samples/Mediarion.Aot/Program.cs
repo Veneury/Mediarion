@@ -95,17 +95,16 @@ namespace AotSample
     {
         public static async Task<int> Main()
         {
-            // Registered by hand and not by scanning an assembly, because a scan is reflection
-            // and reflection is the thing this sample exists to do without.
+            // AddAppMediator is written by the generator from the handlers above: no assembly
+            // is walked and no generic is closed at run time, which is the whole point.
+            //
+            // The behaviour is registered by hand and closed, because which behaviours apply and
+            // in what order is this application's decision, not something to guess from what is
+            // lying in the project.
             var services = new ServiceCollection();
             services.AddSingleton<Log>();
-            services.AddSingleton<INotificationPublisher, Mediarion.NotificationPublishers.ForeachAwaitPublisher>();
-            services.AddTransient<IRequestHandler<Ping, string>, PingHandler>();
-            services.AddTransient<IRequestHandler<Note>, NoteHandler>();
-            services.AddTransient<IRequestHandler<Note, Unit>, VoidHandlerAdapter<Note>>();
-            services.AddTransient<INotificationHandler<Rang>, Answer>();
+            services.AddAppMediator();
             services.AddTransient<IPipelineBehavior<Ping, string>, Shouting>();
-            services.AddSingleton<IMediator, AppMediator>();
 
             using ServiceProvider provider = services.BuildServiceProvider();
 

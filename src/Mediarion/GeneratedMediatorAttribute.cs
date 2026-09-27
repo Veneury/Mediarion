@@ -22,5 +22,16 @@ namespace Mediarion
     [AttributeUsage(AttributeTargets.Class)]
     public sealed class GeneratedMediatorAttribute : Attribute
     {
+        /// <summary>
+        /// Gets or sets whether the generated registration also registers the pre- and
+        /// post-processors it found. Off by default.
+        /// </summary>
+        /// <remarks>
+        /// Off, to match <c>AddMediarion</c>, whose own flag is off for the same reason: a
+        /// processor sitting in the project should not start running because somebody added a
+        /// mediator. The two ways of registering have to agree about this, or the same
+        /// application behaves differently depending on which one it used.
+        /// </remarks>
+        public bool RegisterRequestProcessors { get; set; }
     }
 }
