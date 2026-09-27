@@ -1,0 +1,67 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <Deterministic>true</Deterministic>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!--
+      RS0026 warns about overloads with optional parameters, because adding one later can break
+      a caller that was compiled against the other. The advice is about an API evolving over
+      time; this one is a copy of somebody else's, fixed in the shape that makes a migration a
+      change of namespace. Changing it to satisfy the rule would defeat the point of the library.
+    -->
+    <NoWarn>$(NoWarn);NU1902;RS0026</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Product>Mediarion</Product>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>Mediarion contributors</Authors>
+    <Copyright>Copyright (c) Mediarion contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>mediator;cqrs;messaging;mediatr-alternative;dotnet</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/Veneury/Mediarion</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Veneury/Mediarion</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!--
+    Strong naming, because a strong-named assembly on .NET Framework can only reference other
+    strong-named assemblies: without this, a signed codebase on net472 cannot use Mediarion at
+    all, and .NET Framework is a target this library goes out of its way to support.
+
+    The key is in the repository on purpose. A strong name is an identity, not a security
+    boundary: anyone can strip one and re-sign with a key of their own, so keeping the private
+    half secret buys nothing and costs delay signing and verification skipping for everyone who
+    builds. This is what the .NET projects themselves do.
+  -->
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)mediarion.snk</AssemblyOriginatorKeyFile>
+    <!--
+      The public half of the same key. A strong-named assembly may only open its internals to a
+      friend it names together with a key, so every InternalsVisibleTo has to carry this. It is
+      derived from the file beside it and changes only if that file does.
+    -->
+    <MediarionPublicKey>0024000004800000140100000602000000240000525341310008000001000100792a702e5f35f212a35fdd213157ae2301194a3e2b7b9d38787fdcabd0756d3cc1fc6b7c65ed5c066b8489c98ffe7d8f9e704b6dcdbdbaf146ab4056853e8ad28e368053dfccf76e72df4ce0b134741f3c1156aa8651a16f18498307d6806d2e3d14fc666463730f4b516a2436179004102917c39f56df1e514ffe5fdf2c6ba79ddd70b73fff5263d20b8b09616a60a4ee9f3ab9d644517e38105d0c1cda114f2177885b4089162affa15442e92ebf072f8cada2f0316ad1839ae9f7d3ec90b43d91dc8949a98ccb7f235557fc345eea5b4e7377fd993f9e89cba71219dffd723466edac08a5e9e430c24c809fa2f31a5107ad087de95a94989b0be55fb2d5bc</MediarionPublicKey>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(CI)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>

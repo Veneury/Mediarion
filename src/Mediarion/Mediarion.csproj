@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net472;net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>Mediarion</RootNamespace>
+    <AssemblyName>Mediarion</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Mediarion</PackageId>
+    <Description>In-process mediator for CQRS on .NET. MIT licensed, no licence key, no dependencies, works on .NET Framework, .NET Standard and .NET 8+.</Description>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PolySharp" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mediarion.Extensions.DependencyInjection" Key="$(MediarionPublicKey)" />
+    <InternalsVisibleTo Include="Mediarion.Tests" Key="$(MediarionPublicKey)" />
+    <InternalsVisibleTo Include="Mediarion.Benchmarks" Key="$(MediarionPublicKey)" />
+  </ItemGroup>
+
+  <!--
+    The public surface is written down in PublicAPI.Shipped.txt and checked against the code on
+    every build, so adding, removing or changing anything public has to be done on purpose and
+    shows up in the diff. Anything new goes into PublicAPI.Unshipped.txt and moves across when it
+    is released.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,2 @@
+# A shell script checked out with Windows line endings does not run. CI reads this one.
+*.sh text eol=lf
