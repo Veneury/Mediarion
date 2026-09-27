@@ -42,6 +42,12 @@ Mediarion.Pipeline.IRequestPostProcessor<TRequest, TResponse>
 Mediarion.Pipeline.IRequestPostProcessor<TRequest, TResponse>.Process(TRequest request, TResponse response, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Mediarion.Pipeline.IRequestPreProcessor<TRequest>
 Mediarion.Pipeline.IRequestPreProcessor<TRequest>.Process(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Mediarion.Pipeline.RequestPostProcessorBehavior<TRequest, TResponse>
+Mediarion.Pipeline.RequestPostProcessorBehavior<TRequest, TResponse>.Handle(TRequest request, Mediarion.RequestHandlerDelegate<TResponse>! next, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResponse>!
+Mediarion.Pipeline.RequestPostProcessorBehavior<TRequest, TResponse>.RequestPostProcessorBehavior(System.Collections.Generic.IEnumerable<Mediarion.Pipeline.IRequestPostProcessor<TRequest, TResponse>!>! processors) -> void
+Mediarion.Pipeline.RequestPreProcessorBehavior<TRequest, TResponse>
+Mediarion.Pipeline.RequestPreProcessorBehavior<TRequest, TResponse>.Handle(TRequest request, Mediarion.RequestHandlerDelegate<TResponse>! next, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResponse>!
+Mediarion.Pipeline.RequestPreProcessorBehavior<TRequest, TResponse>.RequestPreProcessorBehavior(System.Collections.Generic.IEnumerable<Mediarion.Pipeline.IRequestPreProcessor<TRequest>!>! processors) -> void
 Mediarion.RequestHandlerDelegate<TResponse>
 Mediarion.Unit
 Mediarion.Unit.CompareTo(Mediarion.Unit other) -> int

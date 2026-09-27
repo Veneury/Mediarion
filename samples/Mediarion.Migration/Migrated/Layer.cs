@@ -1,4 +1,5 @@
 using Mediarion;
+using Mediarion.Pipeline;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
@@ -106,6 +107,38 @@ namespace MigrationSample.Migrated
         public Task Handle(OrderPlaced notification, CancellationToken cancellationToken)
         {
             trace.Add("ledgered " + notification.Total.ToString("0.00", CultureInfo.InvariantCulture));
+            return Task.CompletedTask;
+        }
+    }
+
+    public sealed class StampArrival : IRequestPreProcessor<PlaceOrder>
+    {
+        private readonly Trace trace;
+
+        public StampArrival(Trace trace)
+        {
+            this.trace = trace;
+        }
+
+        public Task Process(PlaceOrder request, CancellationToken cancellationToken)
+        {
+            trace.Add("stamped " + request.Basket.Customer);
+            return Task.CompletedTask;
+        }
+    }
+
+    public sealed class FileReceipt : IRequestPostProcessor<PlaceOrder, Receipt>
+    {
+        private readonly Trace trace;
+
+        public FileReceipt(Trace trace)
+        {
+            this.trace = trace;
+        }
+
+        public Task Process(PlaceOrder request, Receipt response, CancellationToken cancellationToken)
+        {
+            trace.Add("filed " + (response.Reference.Length == 0 ? "nothing" : response.Reference));
             return Task.CompletedTask;
         }
     }

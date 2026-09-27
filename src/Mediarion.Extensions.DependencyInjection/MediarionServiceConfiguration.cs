@@ -12,12 +12,36 @@ namespace Mediarion
     {
         private readonly List<Assembly> assemblies = new List<Assembly>();
         private readonly List<Type> behaviours = new List<Type>();
+        private readonly List<Type> processors = new List<Type>();
 
         /// <summary>Gets the assemblies to scan for handlers.</summary>
         public IReadOnlyList<Assembly> Assemblies => assemblies;
 
         /// <summary>Gets the pipeline behaviours, outermost first.</summary>
         public IReadOnlyList<Type> Behaviours => behaviours;
+
+        /// <summary>Gets the pre- and post-processors added by name.</summary>
+        public IReadOnlyList<Type> Processors => processors;
+
+        /// <summary>
+        /// Gets or sets whether scanning an assembly also picks up its pre- and post-processors.
+        /// Off by default.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Off, because that is what the library this one is a drop-in for does. Turning it on
+        /// by default would mean a codebase moved over starts running processors that were
+        /// sitting in the assembly doing nothing, which is a behaviour change nobody asked for.
+        /// </para>
+        /// <para>
+        /// Turning it on does run them, which is the one place this deliberately parts company
+        /// with the other library: there, the flag registers the processors and nothing ever
+        /// calls them, because the behaviours that do are only added when a processor was named
+        /// one at a time. Nobody can be relying on a flag that does nothing, and doing what it
+        /// says cannot break a migration that worked.
+        /// </para>
+        /// </remarks>
+        public bool AutoRegisterRequestProcessors { get; set; }
 
         /// <summary>Gets or sets the lifetime handlers are registered with. Transient by default.</summary>
         public ServiceLifetime Lifetime { get; set; } = ServiceLifetime.Transient;
@@ -87,6 +111,38 @@ namespace Mediarion
         /// <returns>This, to carry on configuring.</returns>
         public MediarionServiceConfiguration AddBehavior<TBehaviour>() =>
             AddBehavior(typeof(TBehaviour));
+
+        /// <summary>Adds a pre-processor, which may be an open generic.</summary>
+        /// <param name="processorType">The processor type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPreProcessor(Type processorType)
+        {
+            Guard.NotNull(processorType, nameof(processorType));
+            processors.Add(processorType);
+            return this;
+        }
+
+        /// <summary>Adds a pre-processor.</summary>
+        /// <typeparam name="TProcessor">The processor type.</typeparam>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPreProcessor<TProcessor>() =>
+            AddRequestPreProcessor(typeof(TProcessor));
+
+        /// <summary>Adds a post-processor, which may be an open generic.</summary>
+        /// <param name="processorType">The processor type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPostProcessor(Type processorType)
+        {
+            Guard.NotNull(processorType, nameof(processorType));
+            processors.Add(processorType);
+            return this;
+        }
+
+        /// <summary>Adds a post-processor.</summary>
+        /// <typeparam name="TProcessor">The processor type.</typeparam>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPostProcessor<TProcessor>() =>
+            AddRequestPostProcessor(typeof(TProcessor));
 
         /// <summary>Adds an open-generic pipeline behaviour that wraps every request.</summary>
         /// <param name="behaviourType">The open generic behaviour type.</param>

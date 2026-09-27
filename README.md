@@ -68,6 +68,12 @@ somebody who does not know both libraries.
 Writing it found one real difference, since fixed. `Send(object)` on a request with no response
 gave `null` here and `Unit.Value` there — the nicer answer, and the wrong one for a drop-in.
 
+It also found the one place this parts company with MediatR on purpose.
+`AutoRegisterRequestProcessors = true` registers your pre- and post-processors there and then
+never calls them, because the behaviours that run them are only added when a processor is named
+one at a time. Here the flag does what it says. Nobody can be relying on a setting that does
+nothing, and making it work cannot break a migration that already worked.
+
 ## What it is, so far
 
 **0.1 is not released.** It is being built in the open and the shape below is what works today.
@@ -75,11 +81,12 @@ gave `null` here and `Unit.Value` there — the nicer answer, and the wrong one 
 - `IRequest<TResponse>` and `IRequest`, with `IRequestHandler<,>` and `IRequestHandler<>`
 - `INotification` and `INotificationHandler<>`, published one handler at a time or all together
 - `IPipelineBehavior<,>`, running outermost first in registration order
+- `IRequestPreProcessor<>` and `IRequestPostProcessor<,>`, outside the behaviours you add
 - `ISender`, `IPublisher`, `IMediator`, and `AddMediarion` for the container
 - Six target frameworks, from `net472` to `net10.0`, and no package dependencies in the core
 
-Not yet: streaming requests, pre- and post-processors wired into the pipeline, exception handlers,
-and a source generator for ahead-of-time compilation. The last one is the reason `Mediator` is
+Not yet: streaming requests, exception handlers, and a source generator for ahead-of-time
+compilation. The last one is the reason `Mediator` is
 marked `[RequiresDynamicCode]`: the run-time path closes generics over the request type, which an
 application published ahead of time cannot do.
 

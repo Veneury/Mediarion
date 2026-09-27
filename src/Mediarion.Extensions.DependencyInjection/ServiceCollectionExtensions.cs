@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Mediarion.Execution;
 using Mediarion.NotificationPublishers;
+using Mediarion.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Mediarion
@@ -18,6 +19,12 @@ namespace Mediarion
             typeof(IRequestHandler<,>),
             typeof(IRequestHandler<>),
             typeof(INotificationHandler<>),
+        };
+
+        private static readonly Type[] ProcessorContracts =
+        {
+            typeof(IRequestPreProcessor<>),
+            typeof(IRequestPostProcessor<,>),
         };
 
         /// <summary>
@@ -70,8 +77,28 @@ namespace Mediarion
 
             foreach (Assembly assembly in configuration.Assemblies)
             {
-                Scan(services, assembly, configuration.Lifetime);
+                Scan(services, assembly, configuration.Lifetime, configuration.AutoRegisterRequestProcessors);
             }
+
+            foreach (Type processor in configuration.Processors)
+            {
+                AddProcessor(services, processor, configuration.Lifetime);
+            }
+
+            // The two that run the pre- and post-processors go on first, so a pre-processor runs
+            // before any behaviour the application added and a post-processor sees the response
+            // the handler produced rather than what a behaviour did to it. They are registered
+            // whether or not any processor exists: with none, each is one empty loop, and the
+            // alternative is that registering a processor after this call quietly does nothing.
+            services.Add(new ServiceDescriptor(
+                typeof(IPipelineBehavior<,>),
+                typeof(RequestPreProcessorBehavior<,>),
+                ServiceLifetime.Transient));
+
+            services.Add(new ServiceDescriptor(
+                typeof(IPipelineBehavior<,>),
+                typeof(RequestPostProcessorBehavior<,>),
+                ServiceLifetime.Transient));
 
             // Registered in the order they were added, because the container hands them back in
             // registration order and the pipeline reads that as outermost first.
@@ -81,6 +108,30 @@ namespace Mediarion
             }
 
             return services;
+        }
+
+        [RequiresUnreferencedCode("A processor is registered against the contracts it implements.")]
+        [RequiresDynamicCode("A processor is registered against generics closed at run time.")]
+        private static void AddProcessor(IServiceCollection services, Type processor, ServiceLifetime lifetime)
+        {
+            var registered = false;
+
+            foreach (Type contract in processor.GetInterfaces())
+            {
+                if (contract.IsGenericType &&
+                    Array.IndexOf(ProcessorContracts, contract.GetGenericTypeDefinition()) >= 0)
+                {
+                    services.Add(new ServiceDescriptor(contract, processor, lifetime));
+                    registered = true;
+                }
+            }
+
+            if (!registered)
+            {
+                throw new MediarionException(
+                    processor.Name + " was added as a processor but implements neither " +
+                    "IRequestPreProcessor<TRequest> nor IRequestPostProcessor<TRequest, TResponse>.");
+            }
         }
 
         /// <remarks>
@@ -140,7 +191,11 @@ namespace Mediarion
 
         [RequiresUnreferencedCode("Handlers are found by walking the types in an assembly.")]
         [RequiresDynamicCode("Handlers are registered against generics closed at run time.")]
-        private static void Scan(IServiceCollection services, Assembly assembly, ServiceLifetime lifetime)
+        private static void Scan(
+            IServiceCollection services,
+            Assembly assembly,
+            ServiceLifetime lifetime,
+            bool processors)
         {
             foreach (Type candidate in assembly.GetTypes())
             {
@@ -158,7 +213,8 @@ namespace Mediarion
 
                     Type definition = contract.GetGenericTypeDefinition();
 
-                    if (Array.IndexOf(HandlerContracts, definition) < 0)
+                    if (Array.IndexOf(HandlerContracts, definition) < 0 &&
+                        !(processors && Array.IndexOf(ProcessorContracts, definition) >= 0))
                     {
                         continue;
                     }

@@ -52,7 +52,7 @@ namespace MigrationSample
                 return 1;
             }
 
-            Console.WriteLine("Both configurations agree, and the layers differ by two lines.");
+            Console.WriteLine("Both configurations agree, and every line that differs is the name of the library.");
             return 0;
         }
 
@@ -65,6 +65,8 @@ namespace MigrationSample
             services.AddMediatR(configuration =>
             {
                 configuration.RegisterServicesFromAssembly(typeof(Program).Assembly);
+                configuration.AddRequestPreProcessor<Original.StampArrival>();
+                configuration.AddRequestPostProcessor<Original.FileReceipt>();
                 configuration.AddOpenBehavior(typeof(Original.Timing<,>));
                 configuration.AddBehavior<Original.Guarding>();
             });
@@ -85,6 +87,8 @@ namespace MigrationSample
             services.AddMediarion(configuration =>
             {
                 configuration.RegisterServicesFromAssembly(typeof(Program).Assembly);
+                configuration.AddRequestPreProcessor<Migrated.StampArrival>();
+                configuration.AddRequestPostProcessor<Migrated.FileReceipt>();
                 configuration.AddOpenBehavior(typeof(Migrated.Timing<,>));
                 configuration.AddBehavior<Migrated.Guarding>();
             });
@@ -142,32 +146,35 @@ namespace MigrationSample
                 return;
             }
 
-            var differing = new List<string>();
-
-            for (int i = 0; i < original.Length; i++)
-            {
-                if (!string.Equals(original[i], migrated[i], StringComparison.Ordinal))
-                {
-                    differing.Add(original[i].Trim() + "  ->  " + migrated[i].Trim());
-                }
-            }
-
             Console.WriteLine("Every line that differs between the two layers:");
             Console.WriteLine();
 
-            foreach (string line in differing)
+            for (int i = 0; i < original.Length; i++)
             {
-                Console.WriteLine("  " + line);
+                if (string.Equals(original[i], migrated[i], StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                Console.WriteLine("  " + original[i].Trim() + "  ->  " + migrated[i].Trim());
+
+                // The claim is not "few lines differ", it is "the only thing that changed is the
+                // name of the library". Every differing line has to be the original one with
+                // that substitution and nothing else.
+                if (!string.Equals(Renamed(original[i]), migrated[i], StringComparison.Ordinal))
+                {
+                    failures.Add("line " + (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                        " differs by more than the name of the library: '" + original[i].Trim() +
+                        "' became '" + migrated[i].Trim() + "'");
+                }
             }
 
             Console.WriteLine();
-
-            if (differing.Count != 2)
-            {
-                failures.Add("expected the two layers to differ by two lines, found " +
-                    differing.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            }
         }
+
+        private static string Renamed(string line) =>
+            line.Replace("MediatR", "Mediarion", StringComparison.Ordinal)
+                .Replace("MigrationSample.Original", "MigrationSample.Migrated", StringComparison.Ordinal);
 
         private static string Read(string which)
         {
