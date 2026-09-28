@@ -1,0 +1,53 @@
+{
+  "comment": [
+    "What CI holds. One scenario: a request through four behaviours and a handler, which costs",
+    "about two hundred nanoseconds — a floor a regression shows up against. The empty pipeline in",
+    "SendBenchmarks is deliberately not here: seventeen nanoseconds and a third of movement",
+    "between runs of untouched code is a check that cries wolf, and a check that cries wolf gets",
+    "ignored.",
+    "",
+    "Two numbers per entrant, and they are not held the same way on purpose.",
+    "",
+    "The ratio is against MediatR in the same run, and not against the hand-written version. The",
+    "hand-written one is four private calls the JIT flattens into one, ending at a cached task: it",
+    "measures under a nanosecond, the multiple over it is four hundred, and across two runs of the",
+    "same code that multiple read 415x and 268x. It stays in the benchmark because it says what",
+    "the pipeline costs in absolute terms, and it cannot be a divisor. MediatR does the same work",
+    "through a pipeline it builds the same way, on the same machine, in the same run, so it moves",
+    "with the runner — and 12.5.0 is frozen under Apache-2.0, so the reference cannot shift",
+    "underneath the budget.",
+    "",
+    "The ratios here are the worst of five runs on one machine, not the average. Runtime read",
+    "0.792, 0.839, 0.833, 0.654 and 0.688; generated read 0.696, 0.662, 0.640, 0.659 and 0.609.",
+    "Absolute times drifted across the batch — MediatR alone moved from 249 ns to 346 ns — and the",
+    "ratio absorbed most of that but not all of it. Pinning the worst plus fifteen per cent puts",
+    "the ceiling above everything seen, which is the point: this half of the budget is the loose",
+    "half, and is here to catch something large.",
+    "",
+    "The bytes are the sharp half. Allocation per request is decided by the code and not by the",
+    "machine, so it is held as an exact ceiling with no tolerance at all. The regression this",
+    "exists for already happened once: the pre- and post-processor behaviours were registered",
+    "whether or not a processor existed, costing 110 ns and 480 bytes on every request in every",
+    "application through three releases, with the whole test suite green. On this scenario that",
+    "would take 688 bytes to 1168 and fail on the first line of the report.",
+    "",
+    "Raising a number here is how a change that is meant to cost something gets agreed. Do it in",
+    "the same pull request, never afterwards."
+  ],
+  "tolerance": 0.15,
+  "reference": "MediatR",
+  "scenarios": [
+    {
+      "type": "PipelineBenchmarks",
+      "method": "Mediarion_Runtime",
+      "ratio": 0.84,
+      "bytes": 688
+    },
+    {
+      "type": "PipelineBenchmarks",
+      "method": "Mediarion_Generated",
+      "ratio": 0.70,
+      "bytes": 688
+    }
+  ]
+}

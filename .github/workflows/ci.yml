@@ -88,3 +88,44 @@ jobs:
 
       - name: Run the native executable
         run: ./samples/Mediarion.Aot/publish/Mediarion.Aot.exe
+
+  performance:
+    name: performance budget
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # One scenario: a request through four behaviours and a handler. The empty pipeline in
+      # SendBenchmarks is not measured here — seventeen nanoseconds and a third of movement
+      # between runs of untouched code is a check that cries wolf. Mediator is not measured here
+      # either: it is in the published comparison because it is the honest alternative, and it
+      # says nothing about whether our own change cost anything.
+      - name: Measure
+        run: >
+          dotnet run --project benchmarks/Mediarion.Benchmarks/Mediarion.Benchmarks.csproj
+          --configuration Release --
+          --filter "*PipelineBenchmarks*" --job short --exporters json
+
+      # Fails on a time worse than the recorded multiple of MediatR measured in the same run, or
+      # on a single byte more allocated per request than recorded.
+      - name: Compare against the budget
+        run: >
+          dotnet run --project benchmarks/Mediarion.Benchmarks/Mediarion.Benchmarks.csproj
+          --configuration Release --no-build --
+          --budget benchmarks/baseline.json BenchmarkDotNet.Artifacts/results
+
+      - name: Keep the measurements with the run
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-results
+          path: BenchmarkDotNet.Artifacts/results
+          if-no-files-found: ignore

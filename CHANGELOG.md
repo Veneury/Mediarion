@@ -9,6 +9,18 @@ Before v1.0, a minor version may introduce breaking changes.
 
 ### Added
 
+- **A benchmark with a floor worth measuring, and a performance budget in CI on it.** One
+  request through four behaviours and a handler costs about two hundred nanoseconds, against
+  seventeen for the empty pipeline the older scenario measures. `benchmarks/baseline.json`
+  records what it is allowed to cost and CI fails a build that goes over.
+- Two numbers per entrant, held differently on purpose. The time is a multiple of MediatR
+  measured in the same run, pinned at the worst of five runs plus fifteen per cent — the
+  hand-written version cannot be the divisor, since the JIT flattens it to under a nanosecond
+  and the multiple over it read 415x and 268x on two runs of identical code. The bytes are an
+  exact ceiling with no tolerance, because allocation per request is decided by the code and not
+  by the machine. The bytes are the half that would have caught the one performance regression
+  this library has actually had: 480 bytes on every request, through three releases, with the
+  whole test suite green.
 - **`MDR0004`: an open generic handler is a compile-time error.** It cannot be registered by any
   container — an open implementation is closed against an open service type by matching type
   parameters position for position, and a handler's do not line up, since the request argument of
