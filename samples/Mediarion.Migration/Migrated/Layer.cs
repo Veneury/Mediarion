@@ -1,5 +1,6 @@
 using Mediarion;
 using Mediarion.Pipeline;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
@@ -143,6 +144,64 @@ namespace MigrationSample.Migrated
         }
     }
 
+    public sealed class Impossible : IRequest<Receipt>
+    {
+    }
+
+    public sealed class ImpossibleHandler : IRequestHandler<Impossible, Receipt>
+    {
+        public Task<Receipt> Handle(Impossible request, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("nothing to invoice");
+    }
+
+    public sealed class Salvage : IRequestExceptionHandler<Impossible, Receipt, InvalidOperationException>
+    {
+        private readonly Trace trace;
+
+        public Salvage(Trace trace)
+        {
+            this.trace = trace;
+        }
+
+        public Task Handle(
+            Impossible request,
+            InvalidOperationException exception,
+            RequestExceptionHandlerState<Receipt> state,
+            CancellationToken cancellationToken)
+        {
+            trace.Add("salvaged " + exception.Message);
+            state.SetHandled(new Receipt { Reference = "SALVAGED" });
+
+            return Task.CompletedTask;
+        }
+    }
+
+    public sealed class Doomed : IRequest<Receipt>
+    {
+    }
+
+    public sealed class DoomedHandler : IRequestHandler<Doomed, Receipt>
+    {
+        public Task<Receipt> Handle(Doomed request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("no");
+    }
+
+    public sealed class Complain : IRequestExceptionAction<Doomed, NotSupportedException>
+    {
+        private readonly Trace trace;
+
+        public Complain(Trace trace)
+        {
+            this.trace = trace;
+        }
+
+        public Task Execute(Doomed request, NotSupportedException exception, CancellationToken cancellationToken)
+        {
+            trace.Add("complained about " + exception.Message);
+            return Task.CompletedTask;
+        }
+    }
+
     public sealed class Timing<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : notnull
     {
@@ -221,6 +280,19 @@ namespace MigrationSample.Migrated
 
             object? boxed = await sender.Send((object)new CancelOrder { Reference = "loose" });
             trace.Add("boxed response " + (boxed is null ? "none" : boxed.ToString()));
+
+            Receipt salvaged = await sender.Send(new Impossible());
+            trace.Add("impossible gave " + salvaged.Reference);
+
+            try
+            {
+                await sender.Send(new Doomed());
+                trace.Add("doomed did not throw");
+            }
+            catch (NotSupportedException error)
+            {
+                trace.Add("doomed threw " + error.Message);
+            }
 
             return trace.Lines;
         }

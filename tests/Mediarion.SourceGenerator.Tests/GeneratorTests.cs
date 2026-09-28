@@ -229,6 +229,58 @@ public sealed partial class AppMediator { }")
         }
 
         /// <remarks>
+        /// The adapter is what makes choosing a handler by the exception's type possible without
+        /// closing a generic over a type learned at run time, so the registration has to name it.
+        /// </remarks>
+        [Fact]
+        public void An_exception_handler_gets_its_adapter_and_its_behaviour()
+        {
+            GeneratorOutcome outcome = GeneratorHarness.Run(Handled + @"
+public sealed class Rescue
+    : Mediarion.Pipeline.IRequestExceptionHandler<Ping, string, System.InvalidOperationException>
+{
+    public Task Handle(
+        Ping request,
+        System.InvalidOperationException exception,
+        Mediarion.Pipeline.RequestExceptionHandlerState<string> state,
+        CancellationToken cancellationToken) => Task.CompletedTask;
+}
+
+[GeneratedMediator]
+public sealed partial class AppMediator { }");
+
+            outcome.Report().ShouldBeEmpty();
+            outcome.Generated.ShouldContain("global::Mediarion.Pipeline.ExceptionHandlerAdapter<global::Ping, string, global::System.InvalidOperationException>");
+            outcome.Generated.ShouldContain("RequestExceptionProcessorBehavior<global::Ping, string>");
+        }
+
+        /// <remarks>
+        /// One written for Exception itself is already the shape the behaviour resolves. Wrapping
+        /// it would hand the adapter itself, and it would call itself until the stack ran out.
+        /// </remarks>
+        [Fact]
+        public void A_handler_for_any_exception_gets_no_adapter()
+        {
+            GeneratorOutcome outcome = GeneratorHarness.Run(Handled + @"
+public sealed class CatchAnything
+    : Mediarion.Pipeline.IRequestExceptionHandler<Ping, string>
+{
+    public Task Handle(
+        Ping request,
+        System.Exception exception,
+        Mediarion.Pipeline.RequestExceptionHandlerState<string> state,
+        CancellationToken cancellationToken) => Task.CompletedTask;
+}
+
+[GeneratedMediator]
+public sealed partial class AppMediator { }");
+
+            outcome.Report().ShouldBeEmpty();
+            outcome.Generated.ShouldNotContain("ExceptionHandlerAdapter");
+            outcome.Generated.ShouldContain("RequestExceptionProcessorBehavior<global::Ping, string>");
+        }
+
+        /// <remarks>
         /// A project that wires its handlers some other way still gets the dispatch. Writing a
         /// registration against a container it does not reference would not compile.
         /// </remarks>

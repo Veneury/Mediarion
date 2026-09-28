@@ -65,6 +65,110 @@ namespace Mediarion.SourceGeneration
             return text.ToString();
         }
 
+        /// <summary>
+        /// Writes the exception handlers, their adapters and the behaviours that run them.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Not behind a flag, because the scan does not have one either and the two ways of
+        /// registering have to agree. An exception handler is a thing somebody wrote on purpose;
+        /// a processor lying in an assembly is not necessarily one they want run.
+        /// </para>
+        /// <para>
+        /// A handler already written for <c>Exception</c> gets no adapter. The adapter asks for
+        /// the same service type it is registered as, so it would be handed itself.
+        /// </para>
+        /// </remarks>
+        private void WriteExceptions(StringBuilder text, string body)
+        {
+            if (registry.ExceptionHandlers.Count == 0 && registry.ExceptionActions.Count == 0)
+            {
+                return;
+            }
+
+            text.AppendLine();
+
+            foreach (Binding binding in registry.ExceptionHandlers)
+            {
+                string[] arguments = Arguments(binding.Contract);
+                string contract = "global::Mediarion.Pipeline.IRequestExceptionHandler<" +
+                    string.Join(", ", arguments) + ">";
+
+                text.Append(body).Append(Add).Append(".AddTransient<").Append(contract).Append(", ")
+                    .Append(Names.Full(binding.Implementation)).AppendLine(">(services);");
+
+                if (arguments[2] == "global::System.Exception")
+                {
+                    continue;
+                }
+
+                text.Append(body).Append(Add)
+                    .Append(".AddTransient<global::Mediarion.Pipeline.IRequestExceptionHandler<")
+                    .Append(arguments[0]).Append(", ").Append(arguments[1])
+                    .Append(", global::System.Exception>, global::Mediarion.Pipeline.ExceptionHandlerAdapter<")
+                    .Append(string.Join(", ", arguments)).AppendLine(">>(services);");
+            }
+
+            foreach (Binding binding in registry.ExceptionActions)
+            {
+                string[] arguments = Arguments(binding.Contract);
+                string contract = "global::Mediarion.Pipeline.IRequestExceptionAction<" +
+                    string.Join(", ", arguments) + ">";
+
+                text.Append(body).Append(Add).Append(".AddTransient<").Append(contract).Append(", ")
+                    .Append(Names.Full(binding.Implementation)).AppendLine(">(services);");
+
+                if (arguments[1] == "global::System.Exception")
+                {
+                    continue;
+                }
+
+                text.Append(body).Append(Add)
+                    .Append(".AddTransient<global::Mediarion.Pipeline.IRequestExceptionAction<")
+                    .Append(arguments[0])
+                    .Append(", global::System.Exception>, global::Mediarion.Pipeline.ExceptionActionAdapter<")
+                    .Append(string.Join(", ", arguments)).AppendLine(">>(services);");
+            }
+
+            text.AppendLine();
+
+            // Closed one pair at a time rather than left open, because closing an open
+            // registration is something the container would have to do at run time.
+            foreach (RequestPair pair in registry.Requests)
+            {
+                string closed = Names.Full(pair.Request) + ", " +
+                    (pair.Response is null ? Unit : Names.Full(pair.Response));
+
+                if (registry.ExceptionHandlers.Count > 0)
+                {
+                    text.Append(body).Append(Add).Append(".AddTransient<global::Mediarion.IPipelineBehavior<")
+                        .Append(closed)
+                        .Append(">, global::Mediarion.Pipeline.RequestExceptionProcessorBehavior<")
+                        .Append(closed).AppendLine(">>(services);");
+                }
+
+                if (registry.ExceptionActions.Count > 0)
+                {
+                    text.Append(body).Append(Add).Append(".AddTransient<global::Mediarion.IPipelineBehavior<")
+                        .Append(closed)
+                        .Append(">, global::Mediarion.Pipeline.RequestExceptionActionProcessorBehavior<")
+                        .Append(closed).AppendLine(">>(services);");
+                }
+            }
+        }
+
+        private static string[] Arguments(INamedTypeSymbol contract)
+        {
+            var arguments = new string[contract.TypeArguments.Length];
+
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                arguments[i] = Names.Full(contract.TypeArguments[i]);
+            }
+
+            return arguments;
+        }
+
         private static void WriteConstruction(StringBuilder text, INamedTypeSymbol mediator, string indent)
         {
             text.Append(indent).AppendLine("private readonly global::System.IServiceProvider services;");
@@ -318,6 +422,8 @@ namespace Mediarion.SourceGeneration
                         .Append(closed).AppendLine(">>(services);");
                 }
             }
+
+            WriteExceptions(text, body);
 
             text.AppendLine();
             text.Append(body).AppendLine("return services;");
