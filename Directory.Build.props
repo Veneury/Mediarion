@@ -20,7 +20,7 @@
 
   <PropertyGroup>
     <Product>Mediarion</Product>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>0.2.0</VersionPrefix>
     <Authors>Mediarion contributors</Authors>
     <Copyright>Copyright (c) Mediarion contributors</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
