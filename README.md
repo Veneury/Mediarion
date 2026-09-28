@@ -53,7 +53,7 @@ as well as .NET 10, and that carries no dependencies of its own.
 
 ## What it is
 
-**0.3.0 is the current release.** It is not 1.0 for the obvious reason: nobody has used it yet.
+**0.4.0 is the current release.** It is not 1.0 for the obvious reason: nobody has used it yet.
 The shape is copied from a library that has been in production for a decade, and the comparisons
 below are real, and neither of those is the same as somebody's application depending on it.
 
