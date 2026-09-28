@@ -24,15 +24,27 @@ repository, in this environment, and nuget.org hands back a key that lasts an ho
    The workflow file name and the environment are part of what nuget.org checks, so renaming
    either one stops publishing until the policy is updated to match. That is the point of them.
 
-2. Add the nuget.org **profile name** (not the email address) as the repository secret
-   `NUGET_USER`, under *Settings → Secrets and variables → Actions*. It is not sensitive, but
-   keeping it out of a public file is what NuGet recommends, and the workflow stops with a clear
-   message when it is missing.
+2. Add the nuget.org **profile name** as the repository secret `NUGET_USER`, under
+   *Settings → Secrets and variables → Actions*. Today that value is `vdevers`. It is the
+   nuget.org account name, not the email address and not the GitHub one, and where the two
+   differ it is the account that **created** the policy rather than the one that owns the
+   packages — nuget.org says so in the error when it is wrong. It is not sensitive, but keeping
+   it out of a public file is what NuGet recommends, and the workflow stops with a clear message
+   when it is missing.
 
-3. Open *Settings → Environments → nuget* and add yourself as a required reviewer. The release
-   workflow waits there before pushing, which is the last chance to stop a release that should not
-   go out. The environment is created by the first run if it does not exist, but without a
-   reviewer it does not stop anything.
+3. Open *Settings → Environments → nuget* and add yourself as a required reviewer.
+
+   Be clear about what that gate is. The whole job runs inside the environment, so GitHub holds
+   it **before it starts**: approving means "start this release", not "these packages look
+   right". Nothing is built, tested or packed until you approve, and once you do, the job runs
+   to the end and pushes without stopping again.
+
+   That is still the thing worth having — a tag pushed by accident does not publish anything on
+   its own — but if what you want is to see the packages and then decide, the job has to be split
+   in two, with only the pushing half in the environment.
+
+   The environment is created by the first run if it does not exist, but without a reviewer it
+   does not stop anything.
 
 On a private repository a new policy is only provisionally active for seven days and lapses if
 nothing is published in that time. This repository is public, so that does not apply, but it is
@@ -49,10 +61,13 @@ worth knowing if the repository is ever made private.
    git push origin v0.1.0
    ```
 
-3. The `Release` workflow builds, runs the whole suite on the tagged commit, runs the migration
-   sample against MediatR, publishes the ahead-of-time sample natively and runs it, packs the
-   three packages and waits for approval.
-4. Approve it. The packages go to NuGet and a GitHub release is created with them attached.
+3. The `Release` workflow waits for your approval before doing anything, because the job runs
+   inside the `nuget` environment. Approve it from the run page: **Review deployments →
+   nuget → Approve and deploy**.
+4. It then builds, runs the whole suite on the tagged commit, runs the migration sample against
+   MediatR, publishes the ahead-of-time sample natively and runs it, packs the three packages,
+   pushes them to NuGet and creates a GitHub release with them attached. It does not stop
+   again.
 
 The version comes from the tag, so nothing needs editing to release. `VersionPrefix` in
 `Directory.Build.props` only names the builds made in between.
@@ -65,6 +80,12 @@ The version comes from the tag, so nothing needs editing to release. `VersionPre
 - **A package failed to push and others went up.** Re-run the job. The push uses
   `--skip-duplicate`, so what is already on NuGet is left alone. The key is asked for again on the
   re-run, since each one lasts only an hour.
+- **The token exchange fails with HTTP 401**, saying no matching trust policy was found for the
+  user. `NUGET_USER` does not name the nuget.org account that created the policy. This is how
+  0.1.0 failed the first time: the secret held the wrong name, everything else passed, and the
+  job died one step before pushing. Fix the secret and use **Re-run failed jobs** on the same
+  run — the tag does not need to move, and the NuGet key is asked for again because each one
+  lasts an hour.
 - **The push is rejected as unauthorized.** The policy on nuget.org no longer matches the job: check
   the workflow file name, the environment name and the package owner against the table above.
 - **A version went out that should not have.** It cannot be taken back. Delist it on nuget.org so

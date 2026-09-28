@@ -58,6 +58,16 @@ Before v1.0, a minor version may introduce breaking changes.
 - **A generated mediator in a project with no notifications did not compile**, because an empty
   switch is not valid C#. Nothing had ever compiled that shape until the benchmark project did.
 
+### Documentation
+
+- `RELEASING.md` said the release workflow waits for approval before pushing. It waits before
+  starting: the whole job runs inside the `nuget` environment, so GitHub holds it at step zero.
+  Approving means "start this release", not "these packages look right".
+- The value of `NUGET_USER` is named rather than described, because 0.1.0 failed on it the first
+  time: everything passed and the token exchange returned a 401 one step before the push. It is
+  the nuget.org account that created the trusted publishing policy. That failure and its
+  recovery — fix the secret, re-run the failed job, leave the tag alone — are written down.
+
 ## [0.1.0] - 2026-09-27
 
 The first release. An in-process mediator for CQRS, MIT licensed, shaped like MediatR so that

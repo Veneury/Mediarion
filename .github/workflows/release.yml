@@ -1,8 +1,14 @@
 name: Release
 
 # Publishing to NuGet cannot be undone: a version can be delisted but never replaced. So the tag
-# does not publish on its own. The whole suite runs again here, on the exact commit being shipped,
-# and the push waits on the `nuget` environment, which is where a required reviewer belongs.
+# does not publish on its own. The job runs inside the `nuget` environment, which means GitHub
+# holds it before the first step until a reviewer approves: a tag pushed by accident builds
+# nothing and publishes nothing.
+#
+# Approving starts the release rather than signing off on its output — once it runs, the whole
+# suite runs again on the exact commit being shipped and the push follows without stopping. To
+# review the built packages before they go out, this would have to be two jobs with only the
+# second one in the environment.
 #
 # There is no NuGet API key stored in this repository. The job proves who it is with a token
 # GitHub signs for this workflow, in this repository, in this environment, and nuget.org hands
