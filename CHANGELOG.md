@@ -7,6 +7,57 @@ Before v1.0, a minor version may introduce breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- `samples/Mediarion.Helpdesk`, an application that uses the library the way an application
+  would rather than the way a test does: a container, an open-generic behaviour wrapping
+  everything, a closed one that refuses a request before its handler, a pre-processor, a handler
+  that publishes a notification two handlers take, and a request with nothing to give back. It
+  keeps a journal of every step, fails when a line is out of place, and CI runs it. The expected
+  journal was wrong on the first run — a pre-processor was assumed to run inside the behaviours
+  rather than outside them — which is the sort of thing a sample catches and a unit test cannot.
+- `benchmarks/Mediarion.Benchmarks`, with four entrants beside a hand-written baseline: this
+  library both ways, MediatR 12.5.0 and Mediator 3.1.0-rc.1. The numbers are in
+  `benchmarks/README.md`, including the two that do not flatter this library — the run-time path
+  is two and a half times slower than MediatR, and Mediator runs at the speed of calling the
+  handler yourself.
+- Thirteen tests for the generator, over a harness that compiles a snippet in memory and then
+  compiles what the generator wrote. A generator that emits something plausible and invalid is
+  the failure worth catching, and a test that read the text alone would miss it.
+
+### Changed
+
+- **`AddMediarion` registers the two behaviours that run pre- and post-processors only when the
+  configuration knows there are processors.** They used to go on always, on the grounds that
+  each is an empty loop when there is nothing to run. That was true and it cost 110 nanoseconds
+  and 480 bytes on every request, because an open-generic registration is closed by the
+  container per pair and each of those behaviours asks for an enumerable of its own. It also
+  disagreed with the generated registration, which never did this.
+
+  What changes for you: a processor registered straight into the container, without telling the
+  configuration about it, is no longer run. That is the contract MediatR has, and a test pins
+  it. Ask for it through `AddRequestPreProcessor`, `AddRequestPostProcessor` or
+  `AutoRegisterRequestProcessors` and nothing changes.
+
+- The pipeline no longer copies the behaviours into a list the container already handed it as
+  an array, and a request with no behaviours at all reaches its handler without a delegate and a
+  closure being built to get there.
+
+- Together: the run-time path went from 12.5x a hand-written call to about 4x, and from 752
+  bytes a request to 176. It was two and a half times slower than MediatR and is now faster than
+  it, allocating about half. The generated path went from 3.8x to 2.85x. The numbers, and what
+  they still lose to, are in `benchmarks/README.md`.
+
+### Fixed
+
+- **`MDR0003` was declared and never reported.** A diagnostic that exists and cannot fire is the
+  same sin as a setting that is accepted and ignored. It now warns for a request the project
+  declares and nothing in the project answers — a warning, because the handler may come from an
+  assembly the generator cannot see. It found the one case in this repository on its first
+  build.
+- **A generated mediator in a project with no notifications did not compile**, because an empty
+  switch is not valid C#. Nothing had ever compiled that shape until the benchmark project did.
+
 ### Documentation
 
 - `RELEASING.md` said the release workflow waits for approval before pushing. It waits before

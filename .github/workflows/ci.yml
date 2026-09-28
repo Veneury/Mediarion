@@ -50,6 +50,14 @@ jobs:
       - name: Run the migration sample
         run: dotnet run --project samples/Mediarion.Migration/Mediarion.Migration.csproj --no-build --configuration Release
 
+      # The pilot is an application, not a suite, and it checks its own journal and exits
+      # non-zero when a line is wrong. It runs here because what it covers is the join between
+      # the parts — a container, an open-generic behaviour and a closed one that refuses, a
+      # pre-processor, a handler that publishes to two others — which is where a suite of unit
+      # tests is least likely to look.
+      - name: Run the pilot application
+        run: dotnet run --project samples/Mediarion.Helpdesk/Mediarion.Helpdesk.csproj --no-build --configuration Release
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7

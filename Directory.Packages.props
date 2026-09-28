@@ -25,6 +25,12 @@
       after it wants a licence key at run time.
     -->
     <PackageVersion Include="MediatR" Version="12.5.0" />
+    <!--
+      The MIT alternative that already existed, and the one worth measuring against: it writes
+      its dispatch at compile time too. A pre-release, because that is what it publishes.
+    -->
+    <PackageVersion Include="Mediator.Abstractions" Version="3.1.0-rc.1" />
+    <PackageVersion Include="Mediator.SourceGenerator" Version="3.1.0-rc.1" />
   </ItemGroup>
 
 </Project>

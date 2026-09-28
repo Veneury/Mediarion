@@ -154,6 +154,37 @@ namespace Mediarion.Tests
                 .ShouldBe(new[] { "before", "handled", "after 4" });
         }
 
+        /// <summary>
+        /// A processor put into the container behind the library's back is not run.
+        /// </summary>
+        /// <remarks>
+        /// The two behaviours that run the processors are only registered when the
+        /// configuration knows there are some. They used to go on always — one empty loop each
+        /// when there was nothing, which sounded free and cost 110 nanoseconds and 480 bytes on
+        /// every request, because an open-generic registration is closed by the container per
+        /// pair and each of them asks for an enumerable of its own.
+        /// <para>
+        /// This is the contract the other library has, and the one the generated registration
+        /// has always had. Ask for the processor through the configuration and it runs.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public async Task A_processor_registered_behind_the_configuration_does_not_run()
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<Steps>();
+            services.AddMediarion(configuration =>
+                configuration.RegisterServicesFromAssemblyContaining<ProcessorTests>());
+
+            services.AddTransient<IRequestPreProcessor<Measure>, Before>();
+
+            using ServiceProvider provider = services.BuildServiceProvider();
+
+            await provider.GetRequiredService<ISender>().Send(new Measure { What = "four" });
+
+            provider.GetRequiredService<Steps>().Taken.ShouldBe(new[] { "handled" });
+        }
+
         [Fact]
         public void Something_that_is_not_a_processor_says_so()
         {
