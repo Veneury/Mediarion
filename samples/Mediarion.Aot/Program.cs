@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Mediarion;
+using Mediarion.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AotSample
@@ -77,6 +78,29 @@ namespace AotSample
         }
     }
 
+    public sealed class Fail : IRequest<string>
+    {
+    }
+
+    public sealed class FailHandler : IRequestHandler<Fail, string>
+    {
+        public Task<string> Handle(Fail request, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("nope");
+    }
+
+    public sealed class Rescue : IRequestExceptionHandler<Fail, string, InvalidOperationException>
+    {
+        public Task Handle(
+            Fail request,
+            InvalidOperationException exception,
+            RequestExceptionHandlerState<string> state,
+            CancellationToken cancellationToken)
+        {
+            state.SetHandled("rescued " + exception.Message);
+            return Task.CompletedTask;
+        }
+    }
+
     /// <summary>
     /// The class the generator implements. There is nothing in it: the dispatch is written from
     /// the handlers above, while the project compiles.
@@ -123,6 +147,10 @@ namespace AotSample
 
             object? boxed = await mediator.Send((object)new Ping { Message = "again" });
             Check(failures, "a request sent as object", boxed?.ToString(), "PONG AGAIN");
+
+            // The one that would need reflection if it were done the obvious way: choosing a
+            // handler by the type of the exception that was thrown.
+            Check(failures, "an exception handler", await mediator.Send(new Fail()), "rescued nope");
 
             foreach (string failure in failures)
             {

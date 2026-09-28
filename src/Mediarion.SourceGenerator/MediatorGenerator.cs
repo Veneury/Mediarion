@@ -145,12 +145,16 @@ namespace Mediarion.SourceGeneration
             List<RequestPair> requests,
             List<INamedTypeSymbol> notifications,
             List<Binding> notificationHandlers,
-            List<Binding> processors)
+            List<Binding> processors,
+            List<Binding> exceptionHandlers,
+            List<Binding> exceptionActions)
         {
             Requests = requests;
             Notifications = notifications;
             NotificationHandlers = notificationHandlers;
             Processors = processors;
+            ExceptionHandlers = exceptionHandlers;
+            ExceptionActions = exceptionActions;
         }
 
         internal List<RequestPair> Requests { get; }
@@ -164,12 +168,20 @@ namespace Mediarion.SourceGeneration
         /// <summary>Every pre- and post-processor, for the registration to name.</summary>
         internal List<Binding> Processors { get; }
 
+        /// <summary>Every exception handler, with the contract giving the exception type.</summary>
+        internal List<Binding> ExceptionHandlers { get; }
+
+        /// <summary>Every exception action, with the contract giving the exception type.</summary>
+        internal List<Binding> ExceptionActions { get; }
+
         internal static Registry From(SourceProductionContext context, ImmutableArray<INamedTypeSymbol> candidates)
         {
             var requests = new Dictionary<string, RequestPair>(System.StringComparer.Ordinal);
             var notifications = new Dictionary<string, INamedTypeSymbol>(System.StringComparer.Ordinal);
             var notificationHandlers = new List<Binding>();
             var processors = new List<Binding>();
+            var exceptionHandlers = new List<Binding>();
+            var exceptionActions = new List<Binding>();
             var declared = new Dictionary<string, INamedTypeSymbol>(System.StringComparer.Ordinal);
 
             foreach (INamedTypeSymbol candidate in candidates)
@@ -219,6 +231,14 @@ namespace Mediarion.SourceGeneration
                         case "IRequestPostProcessor":
                             processors.Add(new Binding(contract, candidate));
                             break;
+
+                        case "IRequestExceptionHandler" when contract.TypeArguments.Length == 3:
+                            exceptionHandlers.Add(new Binding(contract, candidate));
+                            break;
+
+                        case "IRequestExceptionAction" when contract.TypeArguments.Length == 2:
+                            exceptionActions.Add(new Binding(contract, candidate));
+                            break;
                     }
                 }
             }
@@ -245,8 +265,16 @@ namespace Mediarion.SourceGeneration
 
             notificationHandlers.Sort(Binding.ByName);
             processors.Sort(Binding.ByName);
+            exceptionHandlers.Sort(Binding.ByName);
+            exceptionActions.Sort(Binding.ByName);
 
-            return new Registry(ordered, kept, notificationHandlers, processors);
+            return new Registry(
+                ordered,
+                kept,
+                notificationHandlers,
+                processors,
+                exceptionHandlers,
+                exceptionActions);
         }
 
         private static void Remember(

@@ -27,6 +27,12 @@ namespace Mediarion
             typeof(IRequestPostProcessor<,>),
         };
 
+        private static readonly Type[] ExceptionContracts =
+        {
+            typeof(IRequestExceptionHandler<,,>),
+            typeof(IRequestExceptionAction<,>),
+        };
+
         /// <summary>
         /// Registers the mediator and every handler in the assemblies the configuration names.
         /// </summary>
@@ -70,6 +76,7 @@ namespace Mediarion
         private static IServiceCollection Add(IServiceCollection services, MediarionServiceConfiguration configuration)
         {
             bool processors = configuration.AutoRegisterRequestProcessors || configuration.Processors.Count > 0;
+            var exceptions = new ExceptionRegistrations();
 
             services.TryAddSingletonPublisher(configuration.NotificationPublisher);
 
@@ -79,12 +86,43 @@ namespace Mediarion
 
             foreach (Assembly assembly in configuration.Assemblies)
             {
-                Scan(services, assembly, configuration.Lifetime, configuration.AutoRegisterRequestProcessors);
+                Scan(
+                    services,
+                    assembly,
+                    configuration.Lifetime,
+                    configuration.AutoRegisterRequestProcessors,
+                    exceptions);
             }
 
             foreach (Type processor in configuration.Processors)
             {
                 AddProcessor(services, processor, configuration.Lifetime);
+            }
+
+            // Outermost, ahead of everything the application adds. That is not where they were
+            // put first: innermost reads better, on the argument that an exception handler is
+            // for what the handler threw rather than for what a behaviour decided. The other
+            // library puts them outside, and the difference is visible — a behaviour that logs
+            // on the way out never runs when the handler throws there, and does run here once
+            // the handler has turned the exception into a response. Matching it is the point of
+            // the library, so they go where it puts them.
+            //
+            // Only when something was found to run, for the reason the processors are: an
+            // open-generic behaviour costs an enumerable from the container on every request.
+            if (exceptions.Handlers)
+            {
+                services.Add(new ServiceDescriptor(
+                    typeof(IPipelineBehavior<,>),
+                    typeof(RequestExceptionProcessorBehavior<,>),
+                    ServiceLifetime.Transient));
+            }
+
+            if (exceptions.Actions)
+            {
+                services.Add(new ServiceDescriptor(
+                    typeof(IPipelineBehavior<,>),
+                    typeof(RequestExceptionActionProcessorBehavior<,>),
+                    ServiceLifetime.Transient));
             }
 
             // The two that run the pre- and post-processors go on first, so a pre-processor runs
@@ -119,6 +157,65 @@ namespace Mediarion
             }
 
             return services;
+        }
+
+        /// <remarks>
+        /// Registered twice: once against the contract it declares, and once as an adapter that
+        /// takes any exception and tests the type itself. The behaviours resolve only the second
+        /// shape, so choosing a handler by the exception's type never closes a generic over a
+        /// type learned at run time.
+        /// </remarks>
+        [RequiresUnreferencedCode("An exception handler is registered against the contracts it implements.")]
+        [RequiresDynamicCode("An exception handler is registered against generics closed at run time.")]
+        private static void AddException(
+            IServiceCollection services,
+            Type contract,
+            Type definition,
+            Type implementation,
+            ServiceLifetime lifetime,
+            ExceptionRegistrations found)
+        {
+            services.Add(new ServiceDescriptor(contract, implementation, lifetime));
+
+            Type[] arguments = contract.GetGenericArguments();
+
+            // A handler already written for Exception needs no adapter, and must not get one:
+            // the adapter resolves the same service type it is registered as, so it would be
+            // handed itself and call itself until the stack ran out.
+            if (arguments[arguments.Length - 1] == typeof(Exception))
+            {
+                if (definition == typeof(IRequestExceptionHandler<,,>))
+                {
+                    found.Handlers = true;
+                }
+                else
+                {
+                    found.Actions = true;
+                }
+
+                return;
+            }
+
+            if (definition == typeof(IRequestExceptionHandler<,,>))
+            {
+                services.Add(new ServiceDescriptor(
+                    typeof(IRequestExceptionHandler<,,>)
+                        .MakeGenericType(arguments[0], arguments[1], typeof(Exception)),
+                    typeof(ExceptionHandlerAdapter<,,>)
+                        .MakeGenericType(arguments[0], arguments[1], arguments[2]),
+                    lifetime));
+
+                found.Handlers = true;
+            }
+            else
+            {
+                services.Add(new ServiceDescriptor(
+                    typeof(IRequestExceptionAction<,>).MakeGenericType(arguments[0], typeof(Exception)),
+                    typeof(ExceptionActionAdapter<,>).MakeGenericType(arguments[0], arguments[1]),
+                    lifetime));
+
+                found.Actions = true;
+            }
         }
 
         [RequiresUnreferencedCode("A processor is registered against the contracts it implements.")]
@@ -206,7 +303,8 @@ namespace Mediarion
             IServiceCollection services,
             Assembly assembly,
             ServiceLifetime lifetime,
-            bool processors)
+            bool processors,
+            ExceptionRegistrations exceptions)
         {
             foreach (Type candidate in assembly.GetTypes())
             {
@@ -223,6 +321,15 @@ namespace Mediarion
                     }
 
                     Type definition = contract.GetGenericTypeDefinition();
+
+                    // Exception handlers and actions are picked up whatever else is asked for,
+                    // which is what the other library does with them: there is no flag over
+                    // there and there is none here.
+                    if (Array.IndexOf(ExceptionContracts, definition) >= 0)
+                    {
+                        AddException(services, contract, definition, candidate, lifetime, exceptions);
+                        continue;
+                    }
 
                     if (Array.IndexOf(HandlerContracts, definition) < 0 &&
                         !(processors && Array.IndexOf(ProcessorContracts, definition) >= 0))
@@ -247,5 +354,13 @@ namespace Mediarion
                 }
             }
         }
+        /// <summary>What the scan found, so the behaviours that run it go on only if it did.</summary>
+        private sealed class ExceptionRegistrations
+        {
+            internal bool Handlers { get; set; }
+
+            internal bool Actions { get; set; }
+        }
+
     }
 }

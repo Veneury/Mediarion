@@ -5,6 +5,38 @@ Versioned according to [SemVer 2.0](https://semver.org/).
 
 Before v1.0, a minor version may introduce breaking changes.
 
+## [Unreleased]
+
+### Added
+
+- **Exception handlers.** `IRequestExceptionHandler<TRequest, TResponse, TException>` deals with
+  one kind of failure out of one kind of request and may answer in its place;
+  `IRequestExceptionAction<TRequest, TException>` runs on a failure and lets it carry on
+  throwing. Both have the one-argument-fewer forms that take any `Exception`, and the state
+  object, and the behaviours that run them — the same shapes as the library this is a drop-in
+  for, so a handler written against that one compiles here unedited.
+- Choosing a handler by the type of the exception is the one thing here that would need
+  reflection: the behaviour catches an `Exception` and has to find the handlers registered for
+  whatever it turned out to be, which means closing a generic over a type learned at run time.
+  The choosing is moved to registration instead, where the exception type is known — by the scan
+  or by the generator — and each handler is registered behind an adapter that tests the type
+  itself. The ahead-of-time sample exercises it and still publishes native with no IL warnings.
+- The generated registration names them too, so the ahead-of-time path has them without a scan.
+
+### Fixed
+
+- A handler written for `Exception` itself is not wrapped in that adapter. The adapter resolves
+  the same service type it is registered as, so it would have been handed itself and called
+  itself until the stack ran out. Caught before it shipped, and pinned by a test on both paths.
+
+### Changed
+
+- The exception behaviours sit outermost, ahead of everything the application adds. Innermost
+  reads better — an exception handler is for what the handler threw, not for what a behaviour
+  decided — and the other library puts them outside, and the difference is visible: a behaviour
+  that logs on the way out never runs when the handler throws there. The migration sample caught
+  it, and matching is the point of the library.
+
 ## [0.2.0] - 2026-09-28
 
 A minor rather than a patch, and for the reason the format says: something that used to run no
