@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -26,6 +27,7 @@ namespace Mediarion.Benchmarks
     {
         private ByHand.PingHandler handwritten = null!;
         private global::Mediarion.ISender mediarion = null!;
+        private IServiceProvider mediarionServices = null!;
         private ForGenerated.AppMediator generated = null!;
         private global::MediatR.ISender mediatr = null!;
         private global::Mediator.IMediator mediator = null!;
@@ -45,6 +47,7 @@ namespace Mediarion.Benchmarks
             forMediarion.AddMediarion(cfg => cfg.RegisterServicesFromAssemblyContaining<SendBenchmarks>());
             ServiceProvider mediarionProvider = forMediarion.BuildServiceProvider();
             mediarion = mediarionProvider.GetRequiredService<global::Mediarion.ISender>();
+            mediarionServices = mediarionProvider;
             mediarionRequest = new ForMediarion.Ping { Message = "there" };
 
             var forGenerated = new ServiceCollection();
@@ -69,6 +72,16 @@ namespace Mediarion.Benchmarks
         [Benchmark]
         public Task<string> Mediarion_Runtime() =>
             mediarion.Send(mediarionRequest);
+
+        /// <remarks>
+        /// The pipeline on its own, with the dispatch taken out: the generated mediator reaches
+        /// this in one switch, and the run-time one gets here through a dictionary and a
+        /// wrapper. The gap between this and Mediarion_Runtime is what that costs.
+        /// </remarks>
+        [Benchmark]
+        public Task<string> Mediarion_PipelineOnly() =>
+            global::Mediarion.RequestPipeline.Run<ForMediarion.Ping, string>(
+                mediarionRequest, mediarionServices, CancellationToken.None);
 
         [Benchmark]
         public Task<string> Mediarion_Generated() =>

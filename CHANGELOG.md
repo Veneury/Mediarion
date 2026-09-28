@@ -25,6 +25,29 @@ Before v1.0, a minor version may introduce breaking changes.
   compiles what the generator wrote. A generator that emits something plausible and invalid is
   the failure worth catching, and a test that read the text alone would miss it.
 
+### Changed
+
+- **`AddMediarion` registers the two behaviours that run pre- and post-processors only when the
+  configuration knows there are processors.** They used to go on always, on the grounds that
+  each is an empty loop when there is nothing to run. That was true and it cost 110 nanoseconds
+  and 480 bytes on every request, because an open-generic registration is closed by the
+  container per pair and each of those behaviours asks for an enumerable of its own. It also
+  disagreed with the generated registration, which never did this.
+
+  What changes for you: a processor registered straight into the container, without telling the
+  configuration about it, is no longer run. That is the contract MediatR has, and a test pins
+  it. Ask for it through `AddRequestPreProcessor`, `AddRequestPostProcessor` or
+  `AutoRegisterRequestProcessors` and nothing changes.
+
+- The pipeline no longer copies the behaviours into a list the container already handed it as
+  an array, and a request with no behaviours at all reaches its handler without a delegate and a
+  closure being built to get there.
+
+- Together: the run-time path went from 12.5x a hand-written call to about 4x, and from 752
+  bytes a request to 176. It was two and a half times slower than MediatR and is now faster than
+  it, allocating about half. The generated path went from 3.8x to 2.85x. The numbers, and what
+  they still lose to, are in `benchmarks/README.md`.
+
 ### Fixed
 
 - **`MDR0003` was declared and never reported.** A diagnostic that exists and cannot fire is the

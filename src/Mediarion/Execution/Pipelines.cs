@@ -47,20 +47,29 @@ namespace Mediarion
                 throw MediarionException.NoHandler(typeof(TRequest));
             }
 
-            Task<TResponse> Handle(CancellationToken token) => handler.Handle(request, token);
-
             var behaviours = (IEnumerable<IPipelineBehavior<TRequest, TResponse>>?)
                 services.GetService(typeof(IEnumerable<IPipelineBehavior<TRequest, TResponse>>));
 
-            if (behaviours is null)
+            // The container hands these back as an array, which is already a list: copying it
+            // into one costs an allocation per request and buys an index it already had.
+            IReadOnlyList<IPipelineBehavior<TRequest, TResponse>> ordered =
+                behaviours as IReadOnlyList<IPipelineBehavior<TRequest, TResponse>>
+                ?? (behaviours is null
+                    ? System.Array.Empty<IPipelineBehavior<TRequest, TResponse>>()
+                    : new List<IPipelineBehavior<TRequest, TResponse>>(behaviours));
+
+            // Nothing wrapping the handler means nothing to wrap it in. Building a delegate and
+            // a closure to call it through is most of what this method costs, and most requests
+            // in most applications have no behaviour at all.
+            if (ordered.Count == 0)
             {
-                return Handle(cancellationToken);
+                return handler.Handle(request, cancellationToken);
             }
+
+            Task<TResponse> Handle(CancellationToken token) => handler.Handle(request, token);
 
             // Outermost first is how they read in a registration, so the chain is built from the
             // inside out and the list has to be walked backwards to get there.
-            var ordered = new List<IPipelineBehavior<TRequest, TResponse>>(behaviours);
-
             RequestHandlerDelegate<TResponse> next = Handle;
 
             for (int i = ordered.Count - 1; i >= 0; i--)
