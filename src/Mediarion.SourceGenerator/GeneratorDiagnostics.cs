@@ -25,6 +25,14 @@ namespace Mediarion.SourceGeneration
             DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
+        internal static readonly DiagnosticDescriptor OpenGenericHandler = new DiagnosticDescriptor(
+            "MDR0004",
+            "Open generic handler is not supported",
+            "'{0}' is an open generic handler. Write one closed handler per request type, or put the shared part in an open generic IPipelineBehavior, which is supported.",
+            Category,
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
         internal static readonly DiagnosticDescriptor NoHandler = new DiagnosticDescriptor(
             "MDR0003",
             "Request has no handler here",
