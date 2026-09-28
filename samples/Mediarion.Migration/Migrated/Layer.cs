@@ -202,6 +202,25 @@ namespace MigrationSample.Migrated
         }
     }
 
+    public sealed class LineByLine : IStreamRequest<string>
+    {
+        public int Lines { get; set; }
+    }
+
+    public sealed class LineByLineHandler : IStreamRequestHandler<LineByLine, string>
+    {
+        public async IAsyncEnumerable<string> Handle(
+            LineByLine request,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            for (int i = 1; i <= request.Lines; i++)
+            {
+                await Task.Yield();
+                yield return "line " + i.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+    }
+
     public sealed class Timing<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : notnull
     {
@@ -292,6 +311,11 @@ namespace MigrationSample.Migrated
             catch (NotSupportedException error)
             {
                 trace.Add("doomed threw " + error.Message);
+            }
+
+            await foreach (string line in sender.CreateStream(new LineByLine { Lines = 3 }))
+            {
+                trace.Add("streamed " + line);
             }
 
             return trace.Lines;

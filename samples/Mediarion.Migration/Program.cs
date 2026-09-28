@@ -93,6 +93,8 @@ namespace MigrationSample
                 configuration.AddBehavior<Migrated.Guarding>();
             });
 
+            services.AddMediarionStreaming(typeof(Program).Assembly);
+
             ServiceProvider provider = services.BuildServiceProvider();
 
             return await Migrated.Script.Run(

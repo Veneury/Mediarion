@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Mediarion/Mediarion.csproj" />
+    <ProjectReference Include="../../src/Mediarion.Streaming/Mediarion.Streaming.csproj" />
     <ProjectReference Include="../../src/Mediarion.SourceGenerator/Mediarion.SourceGenerator.csproj"
                      OutputItemType="Analyzer"
                      ReferenceOutputAssembly="false" />

@@ -65,7 +65,7 @@ worth knowing if the repository is ever made private.
    inside the `nuget` environment. Approve it from the run page: **Review deployments →
    nuget → Approve and deploy**.
 4. It then builds, runs the whole suite on the tagged commit, runs the migration sample against
-   MediatR, publishes the ahead-of-time sample natively and runs it, packs the three packages,
+   MediatR, publishes the ahead-of-time sample natively and runs it, packs the four packages,
    pushes them to NuGet and creates a GitHub release with them attached. It does not stop
    again.
 

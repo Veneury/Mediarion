@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Mediarion.Extensions.DependencyInjection/Mediarion.Extensions.DependencyInjection.csproj" />
+    <ProjectReference Include="../../src/Mediarion.Streaming/Mediarion.Streaming.csproj" />
   </ItemGroup>
 
 </Project>

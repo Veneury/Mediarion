@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Mediarion;
@@ -101,6 +102,24 @@ namespace AotSample
         }
     }
 
+    public sealed class Countdown : IStreamRequest<int>
+    {
+    }
+
+    public sealed class CountdownHandler : IStreamRequestHandler<Countdown, int>
+    {
+        public async IAsyncEnumerable<int> Handle(
+            Countdown request,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            for (int i = 3; i >= 1; i--)
+            {
+                await Task.Yield();
+                yield return i;
+            }
+        }
+    }
+
     /// <summary>
     /// The class the generator implements. There is nothing in it: the dispatch is written from
     /// the handlers above, while the project compiles.
@@ -151,6 +170,15 @@ namespace AotSample
             // The one that would need reflection if it were done the obvious way: choosing a
             // handler by the type of the exception that was thrown.
             Check(failures, "an exception handler", await mediator.Send(new Fail()), "rescued nope");
+
+            var counted = new List<int>();
+
+            await foreach (int value in ((IStreamSender)mediator).CreateStream(new Countdown()))
+            {
+                counted.Add(value);
+            }
+
+            Check(failures, "a stream", string.Join(",", counted), "3,2,1");
 
             foreach (string failure in failures)
             {

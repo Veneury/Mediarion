@@ -86,6 +86,7 @@ below is real, and neither of those is the same as somebody's application depend
 - `IRequestPreProcessor<>` and `IRequestPostProcessor<,>`, outside the behaviours you add
 - `IRequestExceptionHandler<,,>` and `IRequestExceptionAction<,>`, for answering in an
   exception's place or just recording it
+- `IStreamRequest<T>` and `CreateStream`, in a package of its own
 - `ISender`, `IPublisher`, `IMediator`, and `AddMediarion` for the container
 - Six target frameworks, from `net472` to `net10.0`, and no package dependencies in the core
 
