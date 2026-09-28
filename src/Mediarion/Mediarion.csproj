@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Mediarion.Extensions.DependencyInjection" Key="$(MediarionPublicKey)" />
+    <InternalsVisibleTo Include="Mediarion.Streaming" Key="$(MediarionPublicKey)" />
     <InternalsVisibleTo Include="Mediarion.Tests" Key="$(MediarionPublicKey)" />
     <InternalsVisibleTo Include="Mediarion.Benchmarks" Key="$(MediarionPublicKey)" />
   </ItemGroup>

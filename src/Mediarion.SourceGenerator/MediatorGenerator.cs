@@ -85,10 +85,18 @@ namespace Mediarion.SourceGeneration
                 bool container = compilation.GetTypeByMetadataName(
                     "Microsoft.Extensions.DependencyInjection.IServiceCollection") is not null;
 
+                // Streaming lives in a package of its own, so it is only written where the
+                // project has it. A project without it gets everything else as before.
+                bool streaming = compilation.GetTypeByMetadataName("Mediarion.IStreamSender") is not null;
+
                 context.AddSource(
                     mediator.ToDisplayString().Replace('<', '_').Replace('>', '_') + ".g.cs",
                     SourceText.From(
-                        new MediatorEmitter(registry).Write(mediator, container, marked.RegisterProcessors),
+                        new MediatorEmitter(registry).Write(
+                            mediator,
+                            container,
+                            marked.RegisterProcessors,
+                            streaming),
                         Encoding.UTF8));
             }
         }
@@ -147,7 +155,8 @@ namespace Mediarion.SourceGeneration
             List<Binding> notificationHandlers,
             List<Binding> processors,
             List<Binding> exceptionHandlers,
-            List<Binding> exceptionActions)
+            List<Binding> exceptionActions,
+            List<RequestPair> streams)
         {
             Requests = requests;
             Notifications = notifications;
@@ -155,6 +164,7 @@ namespace Mediarion.SourceGeneration
             Processors = processors;
             ExceptionHandlers = exceptionHandlers;
             ExceptionActions = exceptionActions;
+            Streams = streams;
         }
 
         internal List<RequestPair> Requests { get; }
@@ -174,6 +184,9 @@ namespace Mediarion.SourceGeneration
         /// <summary>Every exception action, with the contract giving the exception type.</summary>
         internal List<Binding> ExceptionActions { get; }
 
+        /// <summary>Every streaming request and the handler that answers it.</summary>
+        internal List<RequestPair> Streams { get; }
+
         internal static Registry From(SourceProductionContext context, ImmutableArray<INamedTypeSymbol> candidates)
         {
             var requests = new Dictionary<string, RequestPair>(System.StringComparer.Ordinal);
@@ -182,6 +195,7 @@ namespace Mediarion.SourceGeneration
             var processors = new List<Binding>();
             var exceptionHandlers = new List<Binding>();
             var exceptionActions = new List<Binding>();
+            var streams = new Dictionary<string, RequestPair>(System.StringComparer.Ordinal);
             var declared = new Dictionary<string, INamedTypeSymbol>(System.StringComparer.Ordinal);
 
             foreach (INamedTypeSymbol candidate in candidates)
@@ -239,6 +253,10 @@ namespace Mediarion.SourceGeneration
                         case "IRequestExceptionAction" when contract.TypeArguments.Length == 2:
                             exceptionActions.Add(new Binding(contract, candidate));
                             break;
+
+                        case "IStreamRequestHandler" when contract.TypeArguments.Length == 2:
+                            Remember(context, streams, candidate, contract.TypeArguments[0], contract.TypeArguments[1]);
+                            break;
                     }
                 }
             }
@@ -268,13 +286,17 @@ namespace Mediarion.SourceGeneration
             exceptionHandlers.Sort(Binding.ByName);
             exceptionActions.Sort(Binding.ByName);
 
+            var streaming = new List<RequestPair>(streams.Values);
+            streaming.Sort(static (left, right) => string.CompareOrdinal(left.Key, right.Key));
+
             return new Registry(
                 ordered,
                 kept,
                 notificationHandlers,
                 processors,
                 exceptionHandlers,
-                exceptionActions);
+                exceptionActions,
+                streaming);
         }
 
         private static void Remember(

@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mediarion.Benchmarks", "ben
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mediarion.Helpdesk", "samples\Mediarion.Helpdesk\Mediarion.Helpdesk.csproj", "{798C336D-ACD1-4B92-92A0-3A39BE982BEA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mediarion.Streaming", "src\Mediarion.Streaming\Mediarion.Streaming.csproj", "{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -147,6 +149,18 @@ Global
 		{798C336D-ACD1-4B92-92A0-3A39BE982BEA}.Release|x64.Build.0 = Release|Any CPU
 		{798C336D-ACD1-4B92-92A0-3A39BE982BEA}.Release|x86.ActiveCfg = Release|Any CPU
 		{798C336D-ACD1-4B92-92A0-3A39BE982BEA}.Release|x86.Build.0 = Release|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Debug|x64.Build.0 = Debug|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Debug|x86.Build.0 = Debug|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Release|x64.ActiveCfg = Release|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Release|x64.Build.0 = Release|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Release|x86.ActiveCfg = Release|Any CPU
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -161,5 +175,6 @@ Global
 		{9AC71623-829E-45DE-858E-4F6F9ABF91A0} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{F8CC253A-45D1-43DE-A1A5-6E25B548BB52} = {66320409-64EC-F7C5-3DEF-65E7510DAAD1}
 		{798C336D-ACD1-4B92-92A0-3A39BE982BEA} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
+		{04DDB9FF-22F9-420E-AD75-22C5CF9E76CA} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

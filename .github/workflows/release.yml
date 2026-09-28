@@ -84,6 +84,7 @@ jobs:
         run: |
           dotnet pack src/Mediarion/Mediarion.csproj --no-build --configuration Release --output artifacts -p:Version=${{ steps.version.outputs.value }}
           dotnet pack src/Mediarion.Extensions.DependencyInjection/Mediarion.Extensions.DependencyInjection.csproj --no-build --configuration Release --output artifacts -p:Version=${{ steps.version.outputs.value }}
+          dotnet pack src/Mediarion.Streaming/Mediarion.Streaming.csproj --no-build --configuration Release --output artifacts -p:Version=${{ steps.version.outputs.value }}
           dotnet pack src/Mediarion.SourceGenerator/Mediarion.SourceGenerator.csproj --no-build --configuration Release --output artifacts -p:Version=${{ steps.version.outputs.value }}
 
       - name: Keep the packages with the run

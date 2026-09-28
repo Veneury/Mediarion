@@ -5,6 +5,31 @@ Versioned according to [SemVer 2.0](https://semver.org/).
 
 Before v1.0, a minor version may introduce breaking changes.
 
+## [Unreleased]
+
+### Added
+
+- **Streaming, in a package of its own: `Mediarion.Streaming`.** `IStreamRequest<T>`,
+  `IStreamRequestHandler<,>`, `IStreamPipelineBehavior<,>` and `CreateStream`, with the shapes
+  the library this is a drop-in for uses. A streaming request hands back each value as its
+  handler reaches it rather than one value once it has finished.
+- It is separate for one reason: `IAsyncEnumerable<T>` is in the runtime from .NET Core 3.0
+  onwards and comes from a package on `netstandard2.0` and .NET Framework. Putting it in the
+  core would mean everyone carrying that package, including everyone who never streams. The core
+  still has no dependencies.
+- The generator writes the streaming dispatch too, but only for a project that has the package,
+  so ahead-of-time applications can stream. The sample publishes native with no IL warnings and
+  streams.
+- The migration sample streams on both libraries from one piece of source, and the whole
+  difference between the two layers is still the name of the library.
+
+### Known difference
+
+- `CreateStream` is a method on `ISender` over there and an extension method on it here, because
+  `ISender` lives in the package with no dependencies. Call sites are identical. What is not is
+  mocking `ISender.CreateStream`, which no mocking library can intercept: take `IStreamSender`
+  in the code under test and mock that instead.
+
 ## [0.3.0] - 2026-09-28
 
 Exception handling, and nothing else. A minor because it adds to the public surface and takes
