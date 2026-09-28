@@ -1,0 +1,357 @@
+/*
+  The look of the site.
+
+  DocFX serves the "modern" template and then this file last, so everything here is an override
+  of Bootstrap 5 variables the template already uses. Nothing is copied out of the template and
+  nothing is reimplemented: a DocFX upgrade brings its own fixes and this keeps applying on top.
+  Where a rule targets a class rather than a variable, the class is one of the handful the
+  template's master layout declares.
+
+  Two typefaces and one accent. Fraunces for headings, IBM Plex Sans for text, IBM Plex Mono for
+  code, and a deep indigo on warm ivory. The sister project uses the same two faces and a green,
+  which is the intent: the two libraries are meant to look related and not identical.
+*/
+
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+
+:root {
+  --md-display: Fraunces, Georgia, "Times New Roman", serif;
+  --md-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --md-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+[data-bs-theme="light"] {
+  --md-ink: #1a1a18;
+  --md-muted: #5e5c55;
+  --md-muted-rgb: 94, 92, 85;
+  --md-ground: #fbf9f5;
+  --md-raised: #ffffff;
+  --md-line: #e3dfd5;
+  --md-accent: #3f4d9e;
+  --md-accent-rgb: 63, 77, 158;
+  --md-accent-strong: #2c3878;
+  --md-accent-strong-rgb: 44, 56, 120;
+  --md-ink-rgb: 26, 26, 24;
+  --md-ground-rgb: 251, 249, 245;
+  --md-accent-wash: #ecedf7;
+  --md-code-bg: #f4f1ea;
+}
+
+[data-bs-theme="dark"] {
+  --md-ink: #f4f1ea;
+  --md-muted: #a4a9c0;
+  --md-muted-rgb: 164, 169, 192;
+  --md-ground: #171a26;
+  --md-raised: #1f2333;
+  --md-line: #2e3348;
+  --md-accent: #a8b4f2;
+  --md-accent-rgb: 168, 180, 242;
+  --md-accent-strong: #c8d1fa;
+  --md-accent-strong-rgb: 200, 209, 250;
+  --md-ink-rgb: 244, 241, 234;
+  --md-ground-rgb: 23, 26, 38;
+  --md-accent-wash: #262b40;
+  --md-code-bg: #12141f;
+}
+
+/* The template reads these; setting them is most of the work. */
+[data-bs-theme="light"],
+[data-bs-theme="dark"] {
+  --bs-font-sans-serif: var(--md-sans);
+  --bs-font-monospace: var(--md-mono);
+  --bs-body-font-family: var(--md-sans);
+  --bs-body-bg: var(--md-ground);
+  --bs-body-color: var(--md-ink);
+  --bs-emphasis-color: var(--md-ink);
+  --bs-secondary-color: var(--md-muted);
+  --bs-secondary-bg: var(--md-raised);
+  --bs-tertiary-bg: var(--md-raised);
+  --bs-border-color: var(--md-line);
+  --bs-border-color-translucent: var(--md-line);
+  --bs-link-color: var(--md-accent);
+  --bs-link-hover-color: var(--md-accent-strong);
+  /*
+    Bootstrap paints a link with rgba(var(--bs-link-color-rgb), …) rather than with the colour
+    variable, so setting the colour alone leaves every link the default blue. Same for the body
+    pair, which backgrounds built with rgba() read.
+  */
+  --bs-link-color-rgb: var(--md-accent-rgb);
+  --bs-link-hover-color-rgb: var(--md-accent-strong-rgb);
+  --bs-body-color-rgb: var(--md-ink-rgb);
+  --bs-body-bg-rgb: var(--md-ground-rgb);
+  --bs-emphasis-color-rgb: var(--md-ink-rgb);
+  /*
+    The same trap a second time, and the reason this is worth a note: .link-secondary and
+    .text-secondary read the rgb pair, not --bs-secondary-color. Left unset, the "View source"
+    link and the namespace line on every API page kept Bootstrap's grey, which measured 3.53:1
+    on the dark ground — under the 4.5:1 that body-sized text needs. Set both halves of a pair.
+  */
+  --bs-secondary-color-rgb: var(--md-muted-rgb);
+  --bs-tertiary-color-rgb: var(--md-muted-rgb);
+  /*
+    And a third name for what looks like the same thing: .text-secondary reads
+    --bs-secondary-color-rgb while .link-secondary reads --bs-secondary-rgb, which is the theme
+    colour rather than the text colour. Both are set, because both appear on an API page.
+  */
+  --bs-secondary-rgb: var(--md-muted-rgb);
+  --bs-secondary: var(--md-muted);
+  --bs-primary: var(--md-accent);
+  --bs-code-color: var(--md-accent-strong);
+  --bs-border-radius: 0.625rem;
+  --bs-border-radius-sm: 0.5rem;
+  --bs-border-radius-lg: 0.875rem;
+  --bs-body-font-size: 1rem;
+  --bs-body-line-height: 1.7;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/*
+  The template ships its own mark and falls back to it when a site sets no logo. This one sets no
+  logo, and DocFX's own letter on a page that says Mediarion is worse than no mark at all, so the
+  brand is the wordmark alone.
+*/
+.navbar-brand #logo {
+  display: none;
+}
+
+/* Headings carry the display face; everything else stays in the body face. */
+h1,
+h2,
+h3,
+h4,
+.navbar-brand {
+  font-family: var(--md-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+h1 {
+  font-size: clamp(2.1rem, 1.5rem + 2vw, 2.9rem);
+  line-height: 1.1;
+  letter-spacing: -0.022em;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  font-size: 1.7rem;
+  line-height: 1.2;
+  margin-top: 2.75rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--md-line);
+}
+
+h3 {
+  font-size: 1.3rem;
+  margin-top: 2rem;
+}
+
+.content article h2:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.navbar-brand {
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+}
+
+/*
+  The bar and the sidebar sit on the ground colour rather than a panel of their own, so the page
+  reads as one surface instead of three stacked ones.
+*/
+header .navbar {
+  background: var(--md-ground) !important;
+  border-bottom: 1px solid var(--md-line) !important;
+}
+
+.toc-offcanvas,
+nav.toc {
+  background: var(--md-ground);
+}
+
+nav.toc .nav-link {
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  color: var(--md-muted);
+}
+
+nav.toc .nav-link:hover {
+  background: var(--md-accent-wash);
+  color: var(--md-accent-strong);
+}
+
+nav.toc .nav-link.active {
+  background: var(--md-accent-wash);
+  color: var(--md-accent-strong);
+  font-weight: 600;
+}
+
+/* "In this article" is a plain list of links, not a nav-link list like the sidebar. */
+#affix h5 {
+  font-family: var(--md-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--md-muted);
+  border-bottom: 1px solid var(--md-line) !important;
+  padding-bottom: 0.6rem;
+}
+
+#affix ul {
+  list-style: none;
+  padding-left: 0;
+  border-left: 1px solid var(--md-line);
+}
+
+#affix ul li a {
+  display: block;
+  padding: 0.3rem 0 0.3rem 0.9rem;
+  margin-left: -1px;
+  border-left: 2px solid transparent;
+  color: var(--md-muted) !important;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+#affix ul li a:hover,
+#affix ul li a.active {
+  border-left-color: var(--md-accent);
+  color: var(--md-accent-strong) !important;
+}
+
+/*
+  A code block gets its surface from the theme rather than a fixed dark one. The mockup had dark
+  snippets on the light page and they look better, but highlight.js ships one token palette per
+  theme and picks it by lightness: forcing a dark surface under the light palette turns comments
+  and strings unreadable. Recolouring every token by hand would work until the next highlight.js
+  adds one nobody covered, and an unreadable snippet is a worse page than a plainer one.
+
+  The class is on the code element, so the background has to be beaten on the class, not on the
+  element — .hljs outranks a bare `pre code`.
+*/
+pre {
+  background: var(--md-code-bg);
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 1.15rem 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.75;
+}
+
+pre code.hljs,
+pre > code {
+  background: transparent;
+  padding: 0;
+}
+
+:not(pre) > code {
+  background: var(--md-accent-wash);
+  color: var(--md-accent-strong);
+  padding: 0.12em 0.38em;
+  border-radius: 0.3rem;
+  font-size: 0.875em;
+}
+
+/*
+  A measurement table is read by scanning a column, so the numbers line up and the boxes go. The
+  template hands tables Bootstrap's .table-bordered, which rules every cell; that is turned off
+  here rather than left to fight the rows below.
+*/
+.content article table.table {
+  --bs-table-bg: transparent;
+  border-collapse: collapse;
+  font-size: 0.94rem;
+}
+
+.content article table.table-bordered > :not(caption) > * > * {
+  border-width: 0;
+  box-shadow: none;
+}
+
+.content article table.table > thead > tr > th {
+  border-bottom: 1px solid var(--md-line);
+  border-top: 0;
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--md-muted);
+  padding: 0.7rem 1rem;
+}
+
+.content article table.table > tbody > tr > td {
+  border-top: 1px solid var(--md-line);
+  border-bottom: 0;
+  padding: 0.8rem 1rem;
+  vertical-align: top;
+}
+
+.content article table.table > tbody > tr > td:not(:first-child) {
+  font-variant-numeric: tabular-nums;
+}
+
+blockquote {
+  border-left: 3px solid var(--md-accent);
+  background: var(--md-accent-wash);
+  border-radius: 0 0.625rem 0.625rem 0;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+}
+
+blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.search .form-control,
+#search-query {
+  background: var(--md-raised);
+  border: 1px solid var(--md-line);
+  border-radius: 0.625rem;
+}
+
+footer,
+footer .border-top {
+  border-top: 1px solid var(--md-line) !important;
+  color: var(--md-muted);
+}
+
+/* Comfortable measure: prose past about 80 characters a line is harder to come back to. */
+.content article {
+  max-width: 54rem;
+}
+
+.content article > p,
+.content article > ul,
+.content article > ol {
+  margin-bottom: 1.15rem;
+}
+
+/*
+  The language switch. The template renders it as an icon and a tooltip; a tooltip is no use to
+  someone scanning for the other language, so the title is shown as the label. Only the direct
+  anchor child is the switch — the theme picker beside it is a dropdown, not an anchor.
+*/
+.icons > a[title] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--md-muted);
+  font-family: var(--md-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.icons > a[title]::after {
+  content: attr(title);
+}
+
+.icons > a[title]:hover,
+.icons > a[title]:focus-visible {
+  color: var(--md-accent);
+}

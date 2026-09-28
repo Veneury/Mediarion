@@ -1,0 +1,81 @@
+name: Docs
+
+# The site is built on every pull request so a broken link or a page that stops generating is
+# caught in review, and deployed only from main. DocFX reads the XML documentation the build
+# already requires on every public member, so the API reference cannot drift from the code.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Named for what it is rather than for what it does. A required status check is picked from a
+  # list of names with no context beside them, and "build" next to "ubuntu-latest" and
+  # "windows-latest" is an invitation to require the wrong one.
+  build:
+    name: docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      # Before anything is built, because a site that builds and tells a Spanish reader something
+      # the library stopped doing is worse than a site that does not build.
+      - name: Check the translations are current
+        run: ./website/check-translations.sh
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Install DocFX
+        run: dotnet tool install -g docfx --version 2.80.1
+
+      # The bare command runs metadata and then build. `docfx build` on its own skips metadata
+      # and quietly produces a site with no API reference in it, which is why the next step
+      # counts the pages rather than trusting the exit code.
+      - name: Build the site
+        run: docfx website/docfx.json
+
+      - name: Check the API reference was generated
+        run: |
+          pages=$(find website/_site/api -name '*.html' | wc -l)
+          echo "API pages: $pages"
+          if [ "$pages" -lt 60 ]; then
+            echo "The API reference is missing or nearly empty." >&2
+            exit 1
+          fi
+
+      - name: Keep the site with the run
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: website/_site
+
+  deploy:
+    name: deploy
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

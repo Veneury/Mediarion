@@ -1,0 +1,12 @@
+- name: Getting started
+  href: getting-started.md
+- name: Migrating from MediatR
+  href: migrating-from-mediatr.md
+- name: The pipeline
+  href: pipeline.md
+- name: Streaming
+  href: streaming.md
+- name: Ahead-of-time and the generator
+  href: aot.md
+- name: Performance
+  href: performance.md

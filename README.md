@@ -204,6 +204,13 @@ Both paths beat MediatR and allocate about half of what it does; Mediator is fas
 numbers, the runs they came from and what they do not flatter are in
 [benchmarks/README.md](benchmarks/README.md).
 
+## Documentation
+
+[veneury.github.io/Mediarion](https://veneury.github.io/Mediarion/) — the articles above at
+length, plus a reference for every public type generated from the XML documentation the build
+requires on each one. In English and Spanish, and CI fails a build whose Spanish page was
+written against an English page that has since changed.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
