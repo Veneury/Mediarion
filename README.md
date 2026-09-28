@@ -76,10 +76,9 @@ nothing, and making it work cannot break a migration that already worked.
 
 ## What it is
 
-**0.1.0 is the first release.** It is 0.1 and not 1.0 for the obvious reason: nobody has used it
-yet. The shape is copied from a library that has been in production for a decade, and the
-comparison below is real, and neither of those is the same as somebody's application depending
-on it.
+**0.2.0 is the current release.** It is not 1.0 for the obvious reason: nobody has used it yet.
+The shape is copied from a library that has been in production for a decade, and the comparison
+below is real, and neither of those is the same as somebody's application depending on it.
 
 - `IRequest<TResponse>` and `IRequest`, with `IRequestHandler<,>` and `IRequestHandler<>`
 - `INotification` and `INotificationHandler<>`, published one handler at a time or all together

@@ -5,7 +5,19 @@ Versioned according to [SemVer 2.0](https://semver.org/).
 
 Before v1.0, a minor version may introduce breaking changes.
 
-## [Unreleased]
+## [0.2.0] - 2026-09-28
+
+A minor rather than a patch, and for the reason the format says: something that used to run no
+longer does. A pre- or post-processor registered straight into the container, without the
+configuration being told about it, is not run any more. Ask for it the documented way and
+nothing changes. The public API is untouched — `PublicAPI.Unshipped.txt` is empty for both
+packages — which is why this is a minor and not a major, and before 1.0 a minor is allowed to do
+this anyway.
+
+What it is mostly about is the measuring. There were no benchmarks in 0.1.0, which meant the
+readme could not say anything about speed and neither could anybody else. There are now, with
+the library that beats this one in the table, and writing them found that the run-time path was
+two and a half times slower than the library it replaces. It is now faster than it.
 
 ### Added
 
