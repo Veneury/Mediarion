@@ -76,7 +76,7 @@ nothing, and making it work cannot break a migration that already worked.
 
 ## What it is
 
-**0.2.0 is the current release.** It is not 1.0 for the obvious reason: nobody has used it yet.
+**0.3.0 is the current release.** It is not 1.0 for the obvious reason: nobody has used it yet.
 The shape is copied from a library that has been in production for a decade, and the comparison
 below is real, and neither of those is the same as somebody's application depending on it.
 
