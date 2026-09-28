@@ -45,9 +45,12 @@ namespace Mediarion.Tests
         }
     }
 
+    /// <summary>A request with nobody to answer it, which is the whole of what it is for.</summary>
+#pragma warning disable MDR0003 // Deliberate: the tests below check what happens when one is sent.
     public sealed class Unheard : IRequest<string>
     {
     }
+#pragma warning restore MDR0003
 
     public sealed class Square : IPipelineBehavior<Ping, string>
     {

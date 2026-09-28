@@ -170,6 +170,7 @@ namespace Mediarion.SourceGeneration
             var notifications = new Dictionary<string, INamedTypeSymbol>(System.StringComparer.Ordinal);
             var notificationHandlers = new List<Binding>();
             var processors = new List<Binding>();
+            var declared = new Dictionary<string, INamedTypeSymbol>(System.StringComparer.Ordinal);
 
             foreach (INamedTypeSymbol candidate in candidates)
             {
@@ -185,6 +186,18 @@ namespace Mediarion.SourceGeneration
                         ("Mediarion" or "Mediarion.Pipeline"))
                     {
                         continue;
+                    }
+
+                    // The requests themselves, so that one with nobody to answer it can be
+                    // reported rather than found out about when it is sent.
+                    if (contract.Name == "IRequest" && contract.TypeArguments.Length == 1)
+                    {
+                        string declaredKey = Names.Full(candidate);
+
+                        if (!declared.ContainsKey(declaredKey))
+                        {
+                            declared.Add(declaredKey, candidate);
+                        }
                     }
 
                     switch (contract.Name)
@@ -207,6 +220,20 @@ namespace Mediarion.SourceGeneration
                             processors.Add(new Binding(contract, candidate));
                             break;
                     }
+                }
+            }
+
+            // A warning rather than an error: the handler may be registered from an assembly the
+            // generator cannot see, and the message says so. What it catches is the ordinary
+            // case, which is that somebody wrote the request and never wrote the handler.
+            foreach (System.Collections.Generic.KeyValuePair<string, INamedTypeSymbol> request in declared)
+            {
+                if (!requests.ContainsKey(request.Key))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        GeneratorDiagnostics.NoHandler,
+                        request.Value.Locations.FirstOrDefault(),
+                        request.Value.Name));
                 }
             }
 
