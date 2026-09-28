@@ -5,7 +5,14 @@ Versioned according to [SemVer 2.0](https://semver.org/).
 
 Before v1.0, a minor version may introduce breaking changes.
 
-## [Unreleased]
+## [0.3.0] - 2026-09-28
+
+Exception handling, and nothing else. A minor because it adds to the public surface and takes
+nothing away: an application on 0.2.0 can move to this one without touching a line.
+
+It is the last piece of MediatR's shape that was missing apart from streaming, and streaming is
+a decision rather than a task — `IAsyncEnumerable` on `netstandard2.0` means a dependency, and
+the core having none is a promise worth more than a feature nobody has asked for yet.
 
 ### Added
 
