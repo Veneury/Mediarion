@@ -5,6 +5,36 @@ Versioned according to [SemVer 2.0](https://semver.org/).
 
 Before v1.0, a minor version may introduce breaking changes.
 
+## [Unreleased]
+
+### Added
+
+- `samples/Mediarion.Helpdesk`, an application that uses the library the way an application
+  would rather than the way a test does: a container, an open-generic behaviour wrapping
+  everything, a closed one that refuses a request before its handler, a pre-processor, a handler
+  that publishes a notification two handlers take, and a request with nothing to give back. It
+  keeps a journal of every step, fails when a line is out of place, and CI runs it. The expected
+  journal was wrong on the first run — a pre-processor was assumed to run inside the behaviours
+  rather than outside them — which is the sort of thing a sample catches and a unit test cannot.
+- `benchmarks/Mediarion.Benchmarks`, with four entrants beside a hand-written baseline: this
+  library both ways, MediatR 12.5.0 and Mediator 3.1.0-rc.1. The numbers are in
+  `benchmarks/README.md`, including the two that do not flatter this library — the run-time path
+  is two and a half times slower than MediatR, and Mediator runs at the speed of calling the
+  handler yourself.
+- Thirteen tests for the generator, over a harness that compiles a snippet in memory and then
+  compiles what the generator wrote. A generator that emits something plausible and invalid is
+  the failure worth catching, and a test that read the text alone would miss it.
+
+### Fixed
+
+- **`MDR0003` was declared and never reported.** A diagnostic that exists and cannot fire is the
+  same sin as a setting that is accepted and ignored. It now warns for a request the project
+  declares and nothing in the project answers — a warning, because the handler may come from an
+  assembly the generator cannot see. It found the one case in this repository on its first
+  build.
+- **A generated mediator in a project with no notifications did not compile**, because an empty
+  switch is not valid C#. Nothing had ever compiled that shape until the benchmark project did.
+
 ## [0.1.0] - 2026-09-27
 
 The first release. An in-process mediator for CQRS, MIT licensed, shaped like MediatR so that
