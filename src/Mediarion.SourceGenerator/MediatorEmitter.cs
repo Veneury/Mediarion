@@ -99,22 +99,28 @@ namespace Mediarion.SourceGeneration
             text.Append(indent).Append("public ").Append(Task)
                 .AppendLine("<TResponse> Send<TResponse>(global::Mediarion.IRequest<TResponse> request, " + Token + " cancellationToken = default)");
             text.Append(indent).AppendLine("{");
-            text.Append(indent).AppendLine("    switch (request)");
-            text.Append(indent).AppendLine("    {");
 
-            foreach (RequestPair pair in registry.Requests)
+            // An empty switch is not valid C#, so a project with nothing to dispatch gets no
+            // switch at all rather than one with no cases in it.
+            if (registry.Requests.Count > 0)
             {
-                string request = Names.Full(pair.Request);
-                string response = pair.Response is null ? Unit : Names.Full(pair.Response);
+                text.Append(indent).AppendLine("    switch (request)");
+                text.Append(indent).AppendLine("    {");
 
-                text.Append(indent).Append("        case ").Append(request).AppendLine(" typed:");
-                text.Append(indent).Append("            return (").Append(Task).Append("<TResponse>)(object)")
-                    .Append("global::Mediarion.RequestPipeline.Run<").Append(request).Append(", ").Append(response)
-                    .AppendLine(">(typed, services, cancellationToken);");
+                foreach (RequestPair pair in registry.Requests)
+                {
+                    string request = Names.Full(pair.Request);
+                    string response = pair.Response is null ? Unit : Names.Full(pair.Response);
+
+                    text.Append(indent).Append("        case ").Append(request).AppendLine(" typed:");
+                    text.Append(indent).Append("            return (").Append(Task).Append("<TResponse>)(object)")
+                        .Append("global::Mediarion.RequestPipeline.Run<").Append(request).Append(", ").Append(response)
+                        .AppendLine(">(typed, services, cancellationToken);");
+                }
+
+                text.Append(indent).AppendLine("    }");
+                text.AppendLine();
             }
-
-            text.Append(indent).AppendLine("    }");
-            text.AppendLine();
             text.Append(indent).AppendLine("    throw Unhandled(request);");
             text.Append(indent).AppendLine("}");
             text.AppendLine();
@@ -122,25 +128,30 @@ namespace Mediarion.SourceGeneration
 
         private void WriteSendBoxed(StringBuilder text, string indent)
         {
-            text.Append(indent).Append("public async ").Append(Task)
+            text.Append(indent).Append("public ").Append(registry.Requests.Count > 0 ? "async " : string.Empty)
+                .Append(Task)
                 .AppendLine("<object?> Send(object request, " + Token + " cancellationToken = default)");
             text.Append(indent).AppendLine("{");
-            text.Append(indent).AppendLine("    switch (request)");
-            text.Append(indent).AppendLine("    {");
 
-            foreach (RequestPair pair in registry.Requests)
+            if (registry.Requests.Count > 0)
             {
-                string request = Names.Full(pair.Request);
-                string response = pair.Response is null ? Unit : Names.Full(pair.Response);
+                text.Append(indent).AppendLine("    switch (request)");
+                text.Append(indent).AppendLine("    {");
 
-                text.Append(indent).Append("        case ").Append(request).AppendLine(" typed:");
-                text.Append(indent).Append("            return await global::Mediarion.RequestPipeline.Run<")
-                    .Append(request).Append(", ").Append(response)
-                    .AppendLine(">(typed, services, cancellationToken).ConfigureAwait(false);");
+                foreach (RequestPair pair in registry.Requests)
+                {
+                    string request = Names.Full(pair.Request);
+                    string response = pair.Response is null ? Unit : Names.Full(pair.Response);
+
+                    text.Append(indent).Append("        case ").Append(request).AppendLine(" typed:");
+                    text.Append(indent).Append("            return await global::Mediarion.RequestPipeline.Run<")
+                        .Append(request).Append(", ").Append(response)
+                        .AppendLine(">(typed, services, cancellationToken).ConfigureAwait(false);");
+                }
+
+                text.Append(indent).AppendLine("    }");
+                text.AppendLine();
             }
-
-            text.Append(indent).AppendLine("    }");
-            text.AppendLine();
             text.Append(indent).AppendLine("    throw Unhandled(request);");
             text.Append(indent).AppendLine("}");
             text.AppendLine();
@@ -163,20 +174,24 @@ namespace Mediarion.SourceGeneration
             text.Append(indent).Append("public ").Append(Task)
                 .AppendLine(" Publish(object notification, " + Token + " cancellationToken = default)");
             text.Append(indent).AppendLine("{");
-            text.Append(indent).AppendLine("    switch (notification)");
-            text.Append(indent).AppendLine("    {");
 
-            foreach (INamedTypeSymbol notification in registry.Notifications)
+            if (registry.Notifications.Count > 0)
             {
-                string name = Names.Full(notification);
+                text.Append(indent).AppendLine("    switch (notification)");
+                text.Append(indent).AppendLine("    {");
 
-                text.Append(indent).Append("        case ").Append(name).AppendLine(" typed:");
-                text.Append(indent).Append("            return global::Mediarion.NotificationPipeline.Run<")
-                    .Append(name).AppendLine(">(typed, services, publisher, cancellationToken);");
+                foreach (INamedTypeSymbol notification in registry.Notifications)
+                {
+                    string name = Names.Full(notification);
+
+                    text.Append(indent).Append("        case ").Append(name).AppendLine(" typed:");
+                    text.Append(indent).Append("            return global::Mediarion.NotificationPipeline.Run<")
+                        .Append(name).AppendLine(">(typed, services, publisher, cancellationToken);");
+                }
+
+                text.Append(indent).AppendLine("    }");
+                text.AppendLine();
             }
-
-            text.Append(indent).AppendLine("    }");
-            text.AppendLine();
 
             // A notification nobody handles is not an error, the same way it is not one at run
             // time. Anything that is not a notification at all is.

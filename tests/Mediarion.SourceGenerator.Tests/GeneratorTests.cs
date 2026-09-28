@@ -54,6 +54,40 @@ public sealed partial class AppMediator { }");
             outcome.Generated.ShouldBeEmpty();
         }
 
+        /// <remarks>
+        /// An empty switch is not valid C#. A marked class in a project with no handlers of its
+        /// own is an odd thing to write and it has to compile, which this did not until a
+        /// benchmark project turned out to be exactly that shape.
+        /// </remarks>
+        [Fact]
+        public void A_mediator_with_nothing_to_dispatch_still_compiles()
+        {
+            GeneratorOutcome outcome = GeneratorHarness.Run(@"
+using Mediarion;
+
+[GeneratedMediator]
+public sealed partial class AppMediator { }");
+
+            outcome.Report().ShouldBeEmpty();
+            outcome.Generated.ShouldNotContain("switch (request)");
+            outcome.Generated.ShouldNotContain("switch (notification)");
+        }
+
+        /// <remarks>
+        /// The same again with requests but no notifications, which is the common half of it.
+        /// </remarks>
+        [Fact]
+        public void A_mediator_with_no_notifications_still_compiles()
+        {
+            GeneratorOutcome outcome = GeneratorHarness.Run(Handled + @"
+[GeneratedMediator]
+public sealed partial class AppMediator { }");
+
+            outcome.Report().ShouldBeEmpty();
+            outcome.Generated.ShouldContain("switch (request)");
+            outcome.Generated.ShouldNotContain("switch (notification)");
+        }
+
         [Fact]
         public void A_class_that_is_not_partial_is_reported()
         {

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>Mediarion.Benchmarks</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <SignAssembly>false</SignAssembly>
+    <Optimize>true</Optimize>
+    <!--
+      A benchmark project is measured, not shipped. The analysers that make sense for a library
+      make noise here, where a field is assigned by a framework and a method looks unused
+      because an attribute calls it.
+    -->
+    <NoWarn>$(NoWarn);CA1822;CA1852;CA1050;CA1707</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="Mediator.Abstractions" />
+    <PackageReference Include="Mediator.SourceGenerator" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Mediarion.Extensions.DependencyInjection/Mediarion.Extensions.DependencyInjection.csproj" />
+    <ProjectReference Include="../../src/Mediarion.SourceGenerator/Mediarion.SourceGenerator.csproj"
+                     OutputItemType="Analyzer"
+                     ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>
