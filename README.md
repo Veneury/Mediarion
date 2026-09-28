@@ -74,9 +74,12 @@ never calls them, because the behaviours that run them are only added when a pro
 one at a time. Here the flag does what it says. Nobody can be relying on a setting that does
 nothing, and making it work cannot break a migration that already worked.
 
-## What it is, so far
+## What it is
 
-**0.1 is not released.** It is being built in the open and the shape below is what works today.
+**0.1.0 is the first release.** It is 0.1 and not 1.0 for the obvious reason: nobody has used it
+yet. The shape is copied from a library that has been in production for a decade, and the
+comparison below is real, and neither of those is the same as somebody's application depending
+on it.
 
 - `IRequest<TResponse>` and `IRequest`, with `IRequestHandler<,>` and `IRequestHandler<>`
 - `INotification` and `INotificationHandler<>`, published one handler at a time or all together

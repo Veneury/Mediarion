@@ -1,0 +1,140 @@
+name: Release
+
+# Publishing to NuGet cannot be undone: a version can be delisted but never replaced. So the tag
+# does not publish on its own. The whole suite runs again here, on the exact commit being shipped,
+# and the push waits on the `nuget` environment, which is where a required reviewer belongs.
+#
+# There is no NuGet API key stored in this repository. The job proves who it is with a token
+# GitHub signs for this workflow, in this repository, in this environment, and nuget.org hands
+# back a key that lasts an hour. A leaked secret is not something that can happen here because
+# there is no secret to leak: the trusted publishing policy on nuget.org names release.yml and the
+# nuget environment, so renaming either one stops publishing until the policy is updated to match.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  # Lets the job ask GitHub for the signed token nuget.org exchanges for a short-lived key. No
+  # long-lived NuGet secret is stored anywhere.
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: publish
+    # Windows because the ahead-of-time sample is published natively for win-x64, and because the
+    # packages target net472, which needs the .NET Framework runtime rather than just reference
+    # assemblies to build against.
+    runs-on: windows-latest
+    environment: nuget
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Read the version from the tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}' -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw "The tag '${{ github.ref_name }}' is not a version. Tag a release as v1.2.3 or v1.2.3-preview.1."
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Publishing $version"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release -p:Version=${{ steps.version.outputs.value }}
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release
+
+      # The readme says a migration is a change of namespace, and the sample is that claim written
+      # so a machine can fail it. It is proved again on what is being shipped.
+      - name: Run the migration sample
+        run: dotnet run --project samples/Mediarion.Migration/Mediarion.Migration.csproj --no-build --configuration Release
+
+      # The ahead-of-time claim is one the packages make, so it is proved on the tagged commit
+      # rather than trusted from the last run on main.
+      - name: Publish the ahead-of-time sample
+        run: dotnet publish samples/Mediarion.Aot/Mediarion.Aot.csproj --configuration Release --runtime win-x64 --output samples/Mediarion.Aot/publish
+
+      - name: Run the native executable
+        run: ./samples/Mediarion.Aot/publish/Mediarion.Aot.exe
+
+      - name: Pack
+        run: |
+          dotnet pack src/Mediarion/Mediarion.csproj --no-build --configuration Release --output artifacts -p:Version=${{ steps.version.outputs.value }}
+          dotnet pack src/Mediarion.Extensions.DependencyInjection/Mediarion.Extensions.DependencyInjection.csproj --no-build --configuration Release --output artifacts -p:Version=${{ steps.version.outputs.value }}
+          dotnet pack src/Mediarion.SourceGenerator/Mediarion.SourceGenerator.csproj --no-build --configuration Release --output artifacts -p:Version=${{ steps.version.outputs.value }}
+
+      - name: Keep the packages with the run
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages-${{ steps.version.outputs.value }}
+          path: artifacts/*
+
+      # The key nuget.org hands back lasts an hour, so it is asked for here rather than at the top
+      # of the job: everything slow has already happened by this point.
+      - name: Check the publisher is configured
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace('${{ secrets.NUGET_USER }}')) {
+            throw 'The NUGET_USER secret is not set. It holds the nuget.org profile name that owns the trusted publishing policy. See RELEASING.md.'
+          }
+
+      - name: Exchange the GitHub token for a NuGet key
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # The packages are listed here rather than handed to the CLI as a wildcard: dotnet nuget
+      # push does not expand one, and answers a pattern it cannot find with "File does not exist",
+      # which reads like the packages were never built.
+      #
+      # --skip-duplicate so re-running a job that failed partway does not fail on the packages
+      # that already went up. The symbol package beside each one goes up with it.
+      - name: Push to NuGet
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem artifacts/*.nupkg
+
+          if ($packages.Count -eq 0) {
+            throw 'No packages were found in artifacts/. The pack step should have failed before this.'
+          }
+
+          foreach ($package in $packages) {
+            Write-Host "Pushing $($package.Name)"
+            dotnet nuget push $package.FullName --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Pushing $($package.Name) failed."
+            }
+          }
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $packages = (Get-ChildItem artifacts/*.nupkg).FullName
+          $arguments = @('release', 'create', '${{ github.ref_name }}') + $packages +
+            @('--title', '${{ github.ref_name }}', '--generate-notes',
+              '--notes', 'What changed in this version is in CHANGELOG.md.')
+
+          if ('${{ steps.version.outputs.value }}' -match '-') { $arguments += '--prerelease' }
+
+          & gh @arguments
