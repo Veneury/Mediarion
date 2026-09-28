@@ -9,6 +9,17 @@ Before v1.0, a minor version may introduce breaking changes.
 
 ### Added
 
+- **The test suite runs on `net472` and `net48`,** and is not only built for them. The same 42
+  tests now run five times rather than three, and what they run there is different code: the
+  `netstandard2.0` and `net472` assets, on a runtime that caches fewer tasks and gets
+  `IAsyncEnumerable` out of a package rather than out of itself. Only on Windows, because a
+  .NET Framework test assembly needs a .NET Framework to run it and the Linux leg of CI has
+  none.
+- Running them found nothing wrong with the library and one thing wrong with the test project:
+  six of the stream tests failed under the .NET Framework test host with a `FileLoadException`
+  over an assembly nobody referenced deliberately. It needed a binding redirect and an
+  `App.config` for the build to write it into. A `net472` console application that streams
+  through Mediarion was built and run to check where the fault lay, and it needs neither.
 - **A benchmark with a floor worth measuring, and a performance budget in CI on it.** One
   request through four behaviours and a handler costs about two hundred nanoseconds, against
   seventeen for the empty pipeline the older scenario measures. `benchmarks/baseline.json`

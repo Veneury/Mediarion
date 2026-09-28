@@ -40,6 +40,10 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      # The suite runs on net472 and net48 as well as the modern three, but only on the Windows
+      # leg: a .NET Framework test assembly needs a .NET Framework to run it, and the Linux
+      # runner has none. The test project adds those two targets on Windows and leaves them off
+      # elsewhere, so this one command covers five frameworks here and three there.
       - name: Test
         run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=results.trx"
 
