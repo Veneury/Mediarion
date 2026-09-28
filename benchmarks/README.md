@@ -2,19 +2,45 @@
 
 ## How to read this
 
-Each number is how many times slower than the same handler called directly through its
-interface, measured in the same run with BenchmarkDotNet. The handler does nothing, on purpose:
-what is being measured is what a library adds around it. Absolute times move between machines;
-the multiple is what travels.
+Every entrant is measured in the same run with BenchmarkDotNet, on the same machine, against the
+same reference. Absolute times move between machines; what one entrant is as a multiple of
+another in the same run is what travels. Allocation per operation travels too — it is decided by
+the code and not by the runner.
 
 ```
+dotnet run --project benchmarks/Mediarion.Benchmarks -c Release -- --filter "*PipelineBenchmarks*"
 dotnet run --project benchmarks/Mediarion.Benchmarks -c Release -- --filter "*SendBenchmarks*"
 ```
 
-## One request, six ways
+## A request through four behaviours
+
+Four behaviours is what an application that uses a mediator seriously tends to have — logging,
+validation, a transaction, a metric. This is the scenario CI holds to a budget, for the reason
+below.
+
+| | Run 1 | Run 2 | Run 3 | Allocated |
+|---|---|---|---|---|
+| Written out by hand | 0.91 ns | 0.80 ns | 0.86 ns | 0 B |
+| **Mediarion, generated** | 221 ns | 223 ns | 200 ns | 688 B |
+| **Mediarion, run time** | 288 ns | 221 ns | 226 ns | 688 B |
+| MediatR 12.5.0 | 346 ns | 338 ns | 329 ns | 864 B |
+
+The hand-written row is four private calls that pass a request down to a handler, which is what
+the code would be if nobody had reached for a mediator. The JIT flattens it into one call ending
+at a cached task, so it measures under a nanosecond — that is the honest floor, and it is also
+why it is useless as a divisor: the multiple over it is four hundred and read 415x and 268x on
+two runs of identical code.
+
+Against MediatR, which does the same work through a pipeline it builds the same way, Mediarion's
+run-time path measured 0.792, 0.839, 0.833, 0.654 and 0.688 across five runs, and the generated
+path 0.696, 0.662, 0.640, 0.659 and 0.609. Both are faster, the generated one by about a third,
+and both allocate 688 bytes against 864.
+
+## One request, no behaviours, six ways
 
 Two short runs on a laptop, because one run of a benchmark with a seventeen-nanosecond floor
-says less than it looks like it says.
+says less than it looks like it says. Here the multiple is over the same handler called directly
+through its interface.
 
 | | Run 1 | Run 2 | Allocated |
 |---|---|---|---|
@@ -62,14 +88,31 @@ those behaviours asks the container for an enumerable of its own.
 They are registered now only when the configuration knows there are processors — which is what
 the generated registration always did, so the fix also removed a disagreement between the two.
 
-## No budget in CI, yet
+## The budget in CI
 
-Mapperion, the sister project, holds its benchmark ratios in CI and fails a build that regresses
-one. That is not done here on purpose: the floor is eighteen nanoseconds, the ratios move by a
-third between runs of untouched code, and the same shape of check produced three false positives
-there on exactly this kind of scenario. A guard that cries wolf gets ignored.
+`benchmarks/baseline.json` records what the pipeline scenario is allowed to cost, and CI fails a
+build that goes over. The empty-pipeline scenario above is deliberately not held: its floor is
+seventeen nanoseconds, its ratios move by a third between runs of untouched code, and the same
+shape of check produced three false positives on exactly that kind of scenario in the sister
+project. A guard that cries wolf gets ignored.
 
-What would make it worth adding is a scenario with a floor big enough to measure against — a
-pipeline of several behaviours, or a notification with a handful of handlers — and that is the
-next thing to build here. It would also be a better benchmark: every row above has an empty
-pipeline, which is the common case and not the interesting one.
+Two numbers per entrant, held differently on purpose.
+
+The **time** is a multiple of MediatR in the same run, and the recorded figure is the worst of
+five runs plus fifteen per cent. MediatR is the reference rather than the hand-written version
+because it does the same work on the same machine and moves with the runner, and because 12.5.0
+is frozen under Apache-2.0, so the reference cannot shift underneath the budget. This half is
+the loose half and is there to catch something large.
+
+The **bytes** are an exact ceiling with no tolerance at all, because allocation per request does
+not vary between machines. This is the sharp half. The regression it exists for already happened
+once: the 480 bytes described above survived three releases with the whole test suite green, and
+on this scenario it would take 688 bytes to 1168 and fail on the first line of the report.
+
+```
+dotnet run --project benchmarks/Mediarion.Benchmarks -c Release -- --filter "*PipelineBenchmarks*" --job short --exporters json
+dotnet run --project benchmarks/Mediarion.Benchmarks -c Release --no-build -- --budget benchmarks/baseline.json BenchmarkDotNet.Artifacts/results
+```
+
+A change that is meant to cost something raises the number in `baseline.json` in the same pull
+request, so the cost is agreed rather than discovered.

@@ -1,0 +1,12 @@
+- name: Primeros pasos
+  href: getting-started.md
+- name: Migrar desde MediatR
+  href: migrating-from-mediatr.md
+- name: El pipeline
+  href: pipeline.md
+- name: Streaming
+  href: streaming.md
+- name: Ahead-of-time y el generador
+  href: aot.md
+- name: Rendimiento
+  href: performance.md

@@ -67,6 +67,7 @@ below are real, and neither of those is the same as somebody's application depen
 - `ISender`, `IPublisher`, `IMediator`, and `AddMediarion` for the container
 - A source generator, so all of it works in an application published ahead of time
 - Six target frameworks, from `net472` to `net10.0`, and **no package dependencies** in the core
+- The test suite **runs** on `net472` and `net48`, and is not only built for them
 
 ## How much the drop-in claim is worth
 
@@ -103,6 +104,17 @@ would: a container, a pipeline with an open-generic behaviour wrapping everythin
 that refuses a request before it reaches its handler, a pre-processor, a handler that publishes a
 notification two handlers take, and a request with nothing to give back. It keeps a journal of
 every step and fails when a line is out of place, and CI runs it.
+
+## .NET Framework
+
+`net472` is a target this library goes out of its way to support, and a target that is only
+built for is a target nobody has run. The suite runs on `net472` and `net48` as well as the
+modern three — the same 42 tests, five times — because what runs there is different code: the
+`netstandard2.0` and `net472` assets, on a runtime that caches fewer tasks and gets
+`IAsyncEnumerable` out of a package rather than out of itself.
+
+Running them found nothing wrong with the library and one thing wrong with the test project,
+which is roughly the expected split and still worth the six frameworks of build time.
 
 ## Ahead of time
 
@@ -191,6 +203,13 @@ handler was reaching for.
 Both paths beat MediatR and allocate about half of what it does; Mediator is faster than both. The
 numbers, the runs they came from and what they do not flatter are in
 [benchmarks/README.md](benchmarks/README.md).
+
+## Documentation
+
+[veneury.github.io/Mediarion](https://veneury.github.io/Mediarion/) — the articles above at
+length, plus a reference for every public type generated from the XML documentation the build
+requires on each one. In English and Spanish, and CI fails a build whose Spanish page was
+written against an English page that has since changed.
 
 ## Licence
 

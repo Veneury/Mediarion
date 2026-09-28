@@ -2,9 +2,31 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <!--
+      .NET Framework is a target this library goes out of its way to support, and a target that
+      is only built for is a target nobody has run. The suite runs on net472 and net48 as well,
+      where the netstandard2.0 and net472 assets are the ones under test rather than the modern
+      ones: the pipeline builds a delegate chain there against a runtime without covariant
+      returns, without cached tasks for most values, and with an IAsyncEnumerable that comes
+      from a package. None of that is exercised by a run on .NET 10.
+
+      Only on Windows. A net472 test assembly needs a .NET Framework or Mono to run, and the
+      Linux leg of CI has neither, so there the list is the modern three and the Windows leg is
+      what covers the rest.
+    -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net472;net48;$(TargetFrameworks)</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <RootNamespace>Mediarion.Tests</RootNamespace>
+
+    <!--
+      .NET Framework resolves an assembly reference by exact version unless something redirects
+      it. Without these, and without the App.config they write into, six of the stream tests
+      fail on net472 and net48 with a FileLoadException and nothing else — which is what they
+      did the first time this suite was run rather than only built.
+    -->
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +36,18 @@
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
     <PackageReference Include="Shouldly" />
     <PackageReference Include="coverlet.collector" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    Two versions of this are asked for across the graph that reaches IAsyncEnumerable on .NET
+    Framework. Naming it puts one copy in the output and gives the build a conflict to resolve,
+    so it writes a redirect that points both at it — which is what App.config beside this file
+    exists to receive. This is the test host's problem and not the library's: a net472 console
+    application that streams through Mediarion was built and run to check, and it needs neither
+    the package reference nor a redirect.
+  -->
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
   </ItemGroup>
 
   <ItemGroup>
