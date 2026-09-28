@@ -9,6 +9,27 @@ Before v1.0, a minor version may introduce breaking changes.
 
 ### Added
 
+- **`MDR0004`: an open generic handler is a compile-time error.** It cannot be registered by any
+  container — an open implementation is closed against an open service type by matching type
+  parameters position for position, and a handler's do not line up, since the request argument of
+  `IRequestHandler<Wrapped<T>, T>` is `Wrapped<T>` and not `T`. Both engines used to skip one in
+  silence, and nothing anywhere said so.
+- Refusing it at registration was tried and reverted, after asking the other library what it does
+  with one: it registers without complaint and fails on the first send with a container message
+  about a missing service. Refusing would stop an application starting that starts today, over a
+  request that may never be sent. The compile-time error catches it at the declaration, which is
+  earlier and more precise than either, and the send still names the request when the generator is
+  not in use.
+
+### Fixed
+
+- **The readme was wrong, and shipped wrong with 0.3.0.** It said streaming, exception handlers
+  and the source generator were "not yet" while all three were released. Several edits to it over
+  the previous versions had silently not applied — a replace against text an earlier edit had
+  already changed — and nothing checked. It is rewritten against what the library actually does,
+  and now covers the pilot, ahead-of-time, streaming, the open generic limit and where to find the
+  benchmarks.
+
 - **Streaming, in a package of its own: `Mediarion.Streaming`.** `IStreamRequest<T>`,
   `IStreamRequestHandler<,>`, `IStreamPipelineBehavior<,>` and `CreateStream`, with the shapes
   the library this is a drop-in for uses. A streaming request hands back each value as its

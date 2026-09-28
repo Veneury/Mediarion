@@ -8,3 +8,4 @@ Rule ID | Category | Severity | Notes
 MDR0001 | Mediarion | Error | The class marked for generation is not partial
 MDR0002 | Mediarion | Error | Two handlers answer the same request
 MDR0003 | Mediarion | Warning | A request has no handler in this compilation
+MDR0004 | Mediarion | Error | Open generic handler is not supported

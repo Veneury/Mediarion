@@ -308,6 +308,18 @@ namespace Mediarion
         {
             foreach (Type candidate in assembly.GetTypes())
             {
+                // An open generic handler is skipped. The container closes an open
+                // implementation against an open service type by matching the type parameters
+                // position for position, and a handler's do not line up: the request argument of
+                // IRequestHandler<Wrapped<T>, T> is Wrapped<T> and not T, so registering it
+                // would resolve to nothing.
+                //
+                // Refusing it here was tried and reverted. The other library registers it
+                // without complaint and fails on the first send with a container message about a
+                // missing service, so an application that starts today would stop starting — a
+                // worse failure than the one it replaces, and for a request that may never be
+                // sent. What catches it properly is MDR0004, a compile-time error at the
+                // declaration, and failing that the send says which request has no handler.
                 if (candidate.IsAbstract || candidate.IsInterface || candidate.IsGenericTypeDefinition)
                 {
                     continue;

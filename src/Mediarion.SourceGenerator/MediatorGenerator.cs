@@ -200,9 +200,32 @@ namespace Mediarion.SourceGeneration
 
             foreach (INamedTypeSymbol candidate in candidates)
             {
-                if (candidate.IsAbstract || candidate.TypeKind == TypeKind.Interface ||
-                    candidate.IsGenericType)
+                if (candidate.IsAbstract || candidate.TypeKind == TypeKind.Interface)
                 {
+                    continue;
+                }
+
+                // Refused rather than skipped, for the reason the scan refuses it: the container
+                // cannot close an open generic handler, so one written here would never run and
+                // nothing would say why. An open generic behaviour is a different shape and is
+                // supported.
+                if (candidate.IsGenericType)
+                {
+                    foreach (INamedTypeSymbol open in candidate.AllInterfaces)
+                    {
+                        if (open.IsGenericType &&
+                            open.ContainingNamespace?.ToDisplayString() == "Mediarion" &&
+                            open.Name is "IRequestHandler" or "INotificationHandler" or "IStreamRequestHandler")
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                GeneratorDiagnostics.OpenGenericHandler,
+                                candidate.Locations.FirstOrDefault(),
+                                candidate.Name));
+
+                            break;
+                        }
+                    }
+
                     continue;
                 }
 

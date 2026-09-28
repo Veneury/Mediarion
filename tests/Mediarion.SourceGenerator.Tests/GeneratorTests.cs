@@ -281,6 +281,54 @@ public sealed partial class AppMediator { }");
         }
 
         /// <remarks>
+        /// Refused rather than skipped. The container closes an open implementation against an
+        /// open service type by matching type parameters position for position, and a handler's
+        /// do not line up: the request argument of IRequestHandler&lt;Ping&lt;T&gt;, T&gt; is
+        /// Ping&lt;T&gt; and not T. Skipping it in silence means somebody's handler never runs
+        /// and nothing ever says why.
+        /// </remarks>
+        [Fact]
+        public void An_open_generic_handler_is_refused()
+        {
+            GeneratorOutcome outcome = GeneratorHarness.Run(@"
+using System.Threading;
+using System.Threading.Tasks;
+using Mediarion;
+
+public sealed class Wrapped<T> : IRequest<T> { }
+
+public sealed class WrappedHandler<T> : IRequestHandler<Wrapped<T>, T>
+{
+    public Task<T> Handle(Wrapped<T> request, CancellationToken cancellationToken) => Task.FromResult(default(T)!);
+}
+
+[GeneratedMediator]
+public sealed partial class AppMediator { }");
+
+            outcome.Reported("MDR0004").ShouldBeTrue(outcome.Report());
+        }
+
+        /// <remarks>
+        /// An open generic behaviour is a different shape and is supported, so it must not be
+        /// caught by the same check.
+        /// </remarks>
+        [Fact]
+        public void An_open_generic_behaviour_is_left_alone()
+        {
+            GeneratorOutcome outcome = GeneratorHarness.Run(Handled + @"
+public sealed class Around<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : notnull
+{
+    public Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken) => next(cancellationToken);
+}
+
+[GeneratedMediator]
+public sealed partial class AppMediator { }");
+
+            outcome.Reported("MDR0004").ShouldBeFalse(outcome.Report());
+        }
+
+        /// <remarks>
         /// A project that wires its handlers some other way still gets the dispatch. Writing a
         /// registration against a container it does not reference would not compile.
         /// </remarks>
