@@ -109,20 +109,42 @@ namespace Mediarion
             //
             // Only when something was found to run, for the reason the processors are: an
             // open-generic behaviour costs an enumerable from the container on every request.
-            if (exceptions.Handlers)
+            // Which of the two goes on first is the whole of RequestExceptionActionProcessorStrategy.
+            // Registration order is outermost first, and both behaviours work by catching: put the
+            // actions outside the handlers and an exception a handler answered never reaches them,
+            // put them inside and every exception does. Nothing is asked per request.
+            void AddExceptionHandlers()
             {
-                services.Add(new ServiceDescriptor(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(RequestExceptionProcessorBehavior<,>),
-                    ServiceLifetime.Transient));
+                if (exceptions.Handlers)
+                {
+                    services.Add(new ServiceDescriptor(
+                        typeof(IPipelineBehavior<,>),
+                        typeof(RequestExceptionProcessorBehavior<,>),
+                        ServiceLifetime.Transient));
+                }
             }
 
-            if (exceptions.Actions)
+            void AddExceptionActions()
             {
-                services.Add(new ServiceDescriptor(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(RequestExceptionActionProcessorBehavior<,>),
-                    ServiceLifetime.Transient));
+                if (exceptions.Actions)
+                {
+                    services.Add(new ServiceDescriptor(
+                        typeof(IPipelineBehavior<,>),
+                        typeof(RequestExceptionActionProcessorBehavior<,>),
+                        ServiceLifetime.Transient));
+                }
+            }
+
+            if (configuration.RequestExceptionActionProcessorStrategy
+                == RequestExceptionActionProcessorStrategy.ApplyForUnhandledExceptions)
+            {
+                AddExceptionActions();
+                AddExceptionHandlers();
+            }
+            else
+            {
+                AddExceptionHandlers();
+                AddExceptionActions();
             }
 
             // The two that run the pre- and post-processors go on first, so a pre-processor runs

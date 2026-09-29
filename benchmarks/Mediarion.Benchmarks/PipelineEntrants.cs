@@ -137,3 +137,53 @@ namespace Mediarion.Benchmarks.ForMediatR
             CancellationToken cancellationToken) => next(cancellationToken);
     }
 }
+
+namespace Mediarion.Benchmarks.ForMediator
+{
+    public sealed class Work : global::Mediator.IRequest<int>
+    {
+        public int Value { get; set; }
+    }
+
+    public sealed class WorkHandler : global::Mediator.IRequestHandler<Work, int>
+    {
+        public ValueTask<int> Handle(Work request, CancellationToken cancellationToken) =>
+            new ValueTask<int>(request.Value + 1);
+    }
+
+    public sealed class Step1<TRequest, TResponse> : global::Mediator.IPipelineBehavior<TRequest, TResponse>
+        where TRequest : global::Mediator.IMessage
+    {
+        public ValueTask<TResponse> Handle(
+            TRequest request,
+            global::Mediator.MessageHandlerDelegate<TRequest, TResponse> next,
+            CancellationToken cancellationToken) => next(request, cancellationToken);
+    }
+
+    public sealed class Step2<TRequest, TResponse> : global::Mediator.IPipelineBehavior<TRequest, TResponse>
+        where TRequest : global::Mediator.IMessage
+    {
+        public ValueTask<TResponse> Handle(
+            TRequest request,
+            global::Mediator.MessageHandlerDelegate<TRequest, TResponse> next,
+            CancellationToken cancellationToken) => next(request, cancellationToken);
+    }
+
+    public sealed class Step3<TRequest, TResponse> : global::Mediator.IPipelineBehavior<TRequest, TResponse>
+        where TRequest : global::Mediator.IMessage
+    {
+        public ValueTask<TResponse> Handle(
+            TRequest request,
+            global::Mediator.MessageHandlerDelegate<TRequest, TResponse> next,
+            CancellationToken cancellationToken) => next(request, cancellationToken);
+    }
+
+    public sealed class Step4<TRequest, TResponse> : global::Mediator.IPipelineBehavior<TRequest, TResponse>
+        where TRequest : global::Mediator.IMessage
+    {
+        public ValueTask<TResponse> Handle(
+            TRequest request,
+            global::Mediator.MessageHandlerDelegate<TRequest, TResponse> next,
+            CancellationToken cancellationToken) => next(request, cancellationToken);
+    }
+}

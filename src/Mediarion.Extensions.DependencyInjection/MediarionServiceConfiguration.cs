@@ -46,6 +46,18 @@ namespace Mediarion
         /// <summary>Gets or sets the lifetime handlers are registered with. Transient by default.</summary>
         public ServiceLifetime Lifetime { get; set; } = ServiceLifetime.Transient;
 
+        /// <summary>Gets or sets when the exception actions run. Only for an exception no
+        /// handler dealt with, by default.</summary>
+        /// <remarks>
+        /// The default is the other library's default, and the two disagreed until this existed:
+        /// an action here ran even when a handler had already answered in the exception's place,
+        /// which is that library's <see cref="Mediarion.RequestExceptionActionProcessorStrategy.ApplyForAllExceptions"/>
+        /// and not its default. A migration would have started recording failures it used to pass
+        /// over, silently and with nothing failing to compile.
+        /// </remarks>
+        public RequestExceptionActionProcessorStrategy RequestExceptionActionProcessorStrategy { get; set; }
+            = RequestExceptionActionProcessorStrategy.ApplyForUnhandledExceptions;
+
         /// <summary>Gets or sets how the handlers of one notification are run.</summary>
         /// <remarks>
         /// One after another unless this says otherwise. Set it to a

@@ -1,1 +1,6 @@
 #nullable enable
+Mediarion.MediarionServiceConfiguration.RequestExceptionActionProcessorStrategy.get -> Mediarion.RequestExceptionActionProcessorStrategy
+Mediarion.MediarionServiceConfiguration.RequestExceptionActionProcessorStrategy.set -> void
+Mediarion.RequestExceptionActionProcessorStrategy
+Mediarion.RequestExceptionActionProcessorStrategy.ApplyForAllExceptions = 1 -> Mediarion.RequestExceptionActionProcessorStrategy
+Mediarion.RequestExceptionActionProcessorStrategy.ApplyForUnhandledExceptions = 0 -> Mediarion.RequestExceptionActionProcessorStrategy
