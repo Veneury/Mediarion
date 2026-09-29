@@ -4,3 +4,28 @@ Mediarion.MediarionServiceConfiguration.RequestExceptionActionProcessorStrategy.
 Mediarion.RequestExceptionActionProcessorStrategy
 Mediarion.RequestExceptionActionProcessorStrategy.ApplyForAllExceptions = 1 -> Mediarion.RequestExceptionActionProcessorStrategy
 Mediarion.RequestExceptionActionProcessorStrategy.ApplyForUnhandledExceptions = 0 -> Mediarion.RequestExceptionActionProcessorStrategy
+Mediarion.MediarionServiceConfiguration.AddBehavior(System.Type! behaviourType, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddBehavior(System.Type! serviceType, System.Type! implementationType) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddBehavior(System.Type! serviceType, System.Type! implementationType, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddBehavior<TBehaviour>(Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddBehavior<TService, TImplementation>() -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddBehavior<TService, TImplementation>(Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddOpenBehavior(System.Type! behaviourType, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddOpenBehaviors(System.Collections.Generic.IEnumerable<System.Type!>! behaviourTypes) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddOpenBehaviors(System.Collections.Generic.IEnumerable<System.Type!>! behaviourTypes, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddOpenRequestPostProcessor(System.Type! processorType) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddOpenRequestPostProcessor(System.Type! processorType, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddOpenRequestPreProcessor(System.Type! processorType) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddOpenRequestPreProcessor(System.Type! processorType, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPostProcessor(System.Type! processorType, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPostProcessor(System.Type! serviceType, System.Type! implementationType) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPostProcessor(System.Type! serviceType, System.Type! implementationType, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPostProcessor<TProcessor>(Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPostProcessor<TService, TImplementation>() -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPostProcessor<TService, TImplementation>(Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPreProcessor(System.Type! processorType, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPreProcessor(System.Type! serviceType, System.Type! implementationType) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPreProcessor(System.Type! serviceType, System.Type! implementationType, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPreProcessor<TProcessor>(Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPreProcessor<TService, TImplementation>() -> Mediarion.MediarionServiceConfiguration!
+Mediarion.MediarionServiceConfiguration.AddRequestPreProcessor<TService, TImplementation>(Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Mediarion.MediarionServiceConfiguration!

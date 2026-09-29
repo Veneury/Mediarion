@@ -94,9 +94,9 @@ namespace Mediarion
                     exceptions);
             }
 
-            foreach (Type processor in configuration.Processors)
+            foreach (Registration processor in configuration.ProcessorRegistrations)
             {
-                AddProcessor(services, processor, configuration.Lifetime);
+                AddProcessor(services, processor);
             }
 
             // Outermost, ahead of everything the application adds. That is not where they were
@@ -173,7 +173,7 @@ namespace Mediarion
 
             // Registered in the order they were added, because the container hands them back in
             // registration order and the pipeline reads that as outermost first.
-            foreach (Type behaviour in configuration.Behaviours)
+            foreach (Registration behaviour in configuration.BehaviourRegistrations)
             {
                 AddBehaviour(services, behaviour);
             }
@@ -242,8 +242,53 @@ namespace Mediarion
 
         [RequiresUnreferencedCode("A processor is registered against the contracts it implements.")]
         [RequiresDynamicCode("A processor is registered against generics closed at run time.")]
-        private static void AddProcessor(IServiceCollection services, Type processor, ServiceLifetime lifetime)
+        private static void AddProcessor(IServiceCollection services, Registration registration)
         {
+            Type processor = registration.ImplementationType;
+
+            // Named its contract, so that is the one it is registered against and nothing is
+            // worked out. This is how a processor that implements several ends up in front of one
+            // request rather than all of them.
+            if (registration.ServiceType is Type named)
+            {
+                services.Add(new ServiceDescriptor(named, processor, registration.Lifetime));
+                return;
+            }
+
+            // An open generic is registered against the open contract, so the container can close
+            // it per request. Which contract that is comes from the interfaces the definition
+            // declares and not from how many type parameters it has: counting was tried and let a
+            // two-parameter pipeline behaviour through as a post-processor, which the container
+            // then failed to build on the first request rather than here.
+            if (processor.IsGenericTypeDefinition)
+            {
+                var opened = false;
+
+                foreach (Type contract in processor.GetInterfaces())
+                {
+                    if (contract.IsGenericType &&
+                        Array.IndexOf(ProcessorContracts, contract.GetGenericTypeDefinition()) >= 0)
+                    {
+                        services.Add(new ServiceDescriptor(
+                            contract.GetGenericTypeDefinition(),
+                            processor,
+                            registration.Lifetime));
+
+                        opened = true;
+                    }
+                }
+
+                if (!opened)
+                {
+                    throw new MediarionException(
+                        processor.Name + " was added as an open generic processor but implements " +
+                        "neither IRequestPreProcessor<TRequest> nor " +
+                        "IRequestPostProcessor<TRequest, TResponse>.");
+                }
+
+                return;
+            }
+
             var registered = false;
 
             foreach (Type contract in processor.GetInterfaces())
@@ -251,7 +296,7 @@ namespace Mediarion
                 if (contract.IsGenericType &&
                     Array.IndexOf(ProcessorContracts, contract.GetGenericTypeDefinition()) >= 0)
                 {
-                    services.Add(new ServiceDescriptor(contract, processor, lifetime));
+                    services.Add(new ServiceDescriptor(contract, processor, registration.Lifetime));
                     registered = true;
                 }
             }
@@ -272,14 +317,22 @@ namespace Mediarion
         /// </remarks>
         [RequiresUnreferencedCode("A behaviour is registered against the contracts it implements.")]
         [RequiresDynamicCode("A behaviour is registered against generics closed at run time.")]
-        private static void AddBehaviour(IServiceCollection services, Type behaviour)
+        private static void AddBehaviour(IServiceCollection services, Registration registration)
         {
+            Type behaviour = registration.ImplementationType;
+
+            if (registration.ServiceType is Type named)
+            {
+                services.Add(new ServiceDescriptor(named, behaviour, registration.Lifetime));
+                return;
+            }
+
             if (behaviour.IsGenericTypeDefinition)
             {
                 services.Add(new ServiceDescriptor(
                     typeof(IPipelineBehavior<,>),
                     behaviour,
-                    ServiceLifetime.Transient));
+                    registration.Lifetime));
 
                 return;
             }
@@ -291,7 +344,7 @@ namespace Mediarion
                 if (contract.IsGenericType &&
                     contract.GetGenericTypeDefinition() == typeof(IPipelineBehavior<,>))
                 {
-                    services.Add(new ServiceDescriptor(contract, behaviour, ServiceLifetime.Transient));
+                    services.Add(new ServiceDescriptor(contract, behaviour, registration.Lifetime));
                     registered = true;
                 }
             }

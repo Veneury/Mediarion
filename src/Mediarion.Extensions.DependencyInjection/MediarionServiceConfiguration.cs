@@ -13,6 +13,14 @@ namespace Mediarion
         private readonly List<Assembly> assemblies = new List<Assembly>();
         private readonly List<Type> behaviours = new List<Type>();
         private readonly List<Type> processors = new List<Type>();
+        private readonly List<Registration> behaviourRegistrations = new List<Registration>();
+        private readonly List<Registration> processorRegistrations = new List<Registration>();
+
+        /// <summary>What to register for the pipeline, in the order it was asked for.</summary>
+        internal IReadOnlyList<Registration> BehaviourRegistrations => behaviourRegistrations;
+
+        /// <summary>What to register for the pre- and post-processors.</summary>
+        internal IReadOnlyList<Registration> ProcessorRegistrations => processorRegistrations;
 
         /// <summary>Gets the assemblies to scan for handlers.</summary>
         public IReadOnlyList<Assembly> Assemblies => assemblies;
@@ -111,12 +119,8 @@ namespace Mediarion
         /// <remarks>
         /// Behaviours run in the order they are added, outermost first.
         /// </remarks>
-        public MediarionServiceConfiguration AddBehavior(Type behaviourType)
-        {
-            Guard.NotNull(behaviourType, nameof(behaviourType));
-            behaviours.Add(behaviourType);
-            return this;
-        }
+        public MediarionServiceConfiguration AddBehavior(Type behaviourType) =>
+            AddBehavior(behaviourType, ServiceLifetime.Transient);
 
         /// <summary>Adds a pipeline behaviour.</summary>
         /// <typeparam name="TBehaviour">The behaviour type.</typeparam>
@@ -127,12 +131,8 @@ namespace Mediarion
         /// <summary>Adds a pre-processor, which may be an open generic.</summary>
         /// <param name="processorType">The processor type.</param>
         /// <returns>This, to carry on configuring.</returns>
-        public MediarionServiceConfiguration AddRequestPreProcessor(Type processorType)
-        {
-            Guard.NotNull(processorType, nameof(processorType));
-            processors.Add(processorType);
-            return this;
-        }
+        public MediarionServiceConfiguration AddRequestPreProcessor(Type processorType) =>
+            AddRequestPreProcessor(processorType, ServiceLifetime.Transient);
 
         /// <summary>Adds a pre-processor.</summary>
         /// <typeparam name="TProcessor">The processor type.</typeparam>
@@ -143,12 +143,8 @@ namespace Mediarion
         /// <summary>Adds a post-processor, which may be an open generic.</summary>
         /// <param name="processorType">The processor type.</param>
         /// <returns>This, to carry on configuring.</returns>
-        public MediarionServiceConfiguration AddRequestPostProcessor(Type processorType)
-        {
-            Guard.NotNull(processorType, nameof(processorType));
-            processors.Add(processorType);
-            return this;
-        }
+        public MediarionServiceConfiguration AddRequestPostProcessor(Type processorType) =>
+            AddRequestPostProcessor(processorType, ServiceLifetime.Transient);
 
         /// <summary>Adds a post-processor.</summary>
         /// <typeparam name="TProcessor">The processor type.</typeparam>
@@ -161,5 +157,241 @@ namespace Mediarion
         /// <returns>This, to carry on configuring.</returns>
         public MediarionServiceConfiguration AddOpenBehavior(Type behaviourType) =>
             AddBehavior(behaviourType);
+
+        /// <summary>Adds a pipeline behaviour with a lifetime of its own.</summary>
+        /// <param name="behaviourType">The behaviour type, which may be an open generic.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddBehavior(Type behaviourType, ServiceLifetime lifetime)
+        {
+            Guard.NotNull(behaviourType, nameof(behaviourType));
+            behaviours.Add(behaviourType);
+            behaviourRegistrations.Add(new Registration(null, behaviourType, lifetime));
+            return this;
+        }
+
+        /// <summary>Adds a pipeline behaviour against the one contract named.</summary>
+        /// <param name="serviceType">The contract to register it against.</param>
+        /// <param name="implementationType">The behaviour type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        /// <remarks>
+        /// Without this, a behaviour is registered against every <c>IPipelineBehavior</c> it
+        /// implements. Naming the contract is how one that implements several is put in front of
+        /// one request and not the rest.
+        /// </remarks>
+        public MediarionServiceConfiguration AddBehavior(Type serviceType, Type implementationType) =>
+            AddBehavior(serviceType, implementationType, ServiceLifetime.Transient);
+
+        /// <summary>Adds a pipeline behaviour against the one contract named, with a lifetime.</summary>
+        /// <param name="serviceType">The contract to register it against.</param>
+        /// <param name="implementationType">The behaviour type.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddBehavior(
+            Type serviceType,
+            Type implementationType,
+            ServiceLifetime lifetime)
+        {
+            Guard.NotNull(serviceType, nameof(serviceType));
+            Guard.NotNull(implementationType, nameof(implementationType));
+            behaviours.Add(implementationType);
+            behaviourRegistrations.Add(new Registration(serviceType, implementationType, lifetime));
+            return this;
+        }
+
+        /// <summary>Adds a pipeline behaviour with a lifetime of its own.</summary>
+        /// <typeparam name="TBehaviour">The behaviour type.</typeparam>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddBehavior<TBehaviour>(ServiceLifetime lifetime) =>
+            AddBehavior(typeof(TBehaviour), lifetime);
+
+        /// <summary>Adds a pipeline behaviour against the one contract named.</summary>
+        /// <typeparam name="TService">The contract to register it against.</typeparam>
+        /// <typeparam name="TImplementation">The behaviour type.</typeparam>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddBehavior<TService, TImplementation>() =>
+            AddBehavior(typeof(TService), typeof(TImplementation));
+
+        /// <summary>Adds a pipeline behaviour against the one contract named, with a lifetime.</summary>
+        /// <typeparam name="TService">The contract to register it against.</typeparam>
+        /// <typeparam name="TImplementation">The behaviour type.</typeparam>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddBehavior<TService, TImplementation>(ServiceLifetime lifetime) =>
+            AddBehavior(typeof(TService), typeof(TImplementation), lifetime);
+
+        /// <summary>Adds an open-generic pipeline behaviour with a lifetime of its own.</summary>
+        /// <param name="behaviourType">The open generic behaviour type.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddOpenBehavior(Type behaviourType, ServiceLifetime lifetime) =>
+            AddBehavior(behaviourType, lifetime);
+
+        /// <summary>Adds several open-generic pipeline behaviours, in the order given.</summary>
+        /// <param name="behaviourTypes">The open generic behaviour types.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddOpenBehaviors(IEnumerable<Type> behaviourTypes) =>
+            AddOpenBehaviors(behaviourTypes, ServiceLifetime.Transient);
+
+        /// <summary>Adds several open-generic pipeline behaviours, in the order given.</summary>
+        /// <param name="behaviourTypes">The open generic behaviour types.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddOpenBehaviors(
+            IEnumerable<Type> behaviourTypes,
+            ServiceLifetime lifetime)
+        {
+            Guard.NotNull(behaviourTypes, nameof(behaviourTypes));
+
+            foreach (Type behaviourType in behaviourTypes)
+            {
+                AddBehavior(behaviourType, lifetime);
+            }
+
+            return this;
+        }
+
+        /// <summary>Adds a pre-processor with a lifetime of its own.</summary>
+        /// <param name="processorType">The processor type, which may be an open generic.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPreProcessor(Type processorType, ServiceLifetime lifetime)
+        {
+            Guard.NotNull(processorType, nameof(processorType));
+            processors.Add(processorType);
+            processorRegistrations.Add(new Registration(null, processorType, lifetime));
+            return this;
+        }
+
+        /// <summary>Adds a pre-processor against the one contract named.</summary>
+        /// <param name="serviceType">The contract to register it against.</param>
+        /// <param name="implementationType">The processor type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPreProcessor(Type serviceType, Type implementationType) =>
+            AddRequestPreProcessor(serviceType, implementationType, ServiceLifetime.Transient);
+
+        /// <summary>Adds a pre-processor against the one contract named, with a lifetime.</summary>
+        /// <param name="serviceType">The contract to register it against.</param>
+        /// <param name="implementationType">The processor type.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPreProcessor(
+            Type serviceType,
+            Type implementationType,
+            ServiceLifetime lifetime)
+        {
+            Guard.NotNull(serviceType, nameof(serviceType));
+            Guard.NotNull(implementationType, nameof(implementationType));
+            processors.Add(implementationType);
+            processorRegistrations.Add(new Registration(serviceType, implementationType, lifetime));
+            return this;
+        }
+
+        /// <summary>Adds a pre-processor with a lifetime of its own.</summary>
+        /// <typeparam name="TProcessor">The processor type.</typeparam>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPreProcessor<TProcessor>(ServiceLifetime lifetime) =>
+            AddRequestPreProcessor(typeof(TProcessor), lifetime);
+
+        /// <summary>Adds a pre-processor against the one contract named.</summary>
+        /// <typeparam name="TService">The contract to register it against.</typeparam>
+        /// <typeparam name="TImplementation">The processor type.</typeparam>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPreProcessor<TService, TImplementation>() =>
+            AddRequestPreProcessor(typeof(TService), typeof(TImplementation));
+
+        /// <summary>Adds a pre-processor against the one contract named, with a lifetime.</summary>
+        /// <typeparam name="TService">The contract to register it against.</typeparam>
+        /// <typeparam name="TImplementation">The processor type.</typeparam>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPreProcessor<TService, TImplementation>(ServiceLifetime lifetime) =>
+            AddRequestPreProcessor(typeof(TService), typeof(TImplementation), lifetime);
+
+        /// <summary>Adds an open-generic pre-processor.</summary>
+        /// <param name="processorType">The open generic processor type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddOpenRequestPreProcessor(Type processorType) =>
+            AddRequestPreProcessor(processorType);
+
+        /// <summary>Adds an open-generic pre-processor with a lifetime of its own.</summary>
+        /// <param name="processorType">The open generic processor type.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddOpenRequestPreProcessor(Type processorType, ServiceLifetime lifetime) =>
+            AddRequestPreProcessor(processorType, lifetime);
+
+        /// <summary>Adds a post-processor with a lifetime of its own.</summary>
+        /// <param name="processorType">The processor type, which may be an open generic.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPostProcessor(Type processorType, ServiceLifetime lifetime)
+        {
+            Guard.NotNull(processorType, nameof(processorType));
+            processors.Add(processorType);
+            processorRegistrations.Add(new Registration(null, processorType, lifetime));
+            return this;
+        }
+
+        /// <summary>Adds a post-processor against the one contract named.</summary>
+        /// <param name="serviceType">The contract to register it against.</param>
+        /// <param name="implementationType">The processor type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPostProcessor(Type serviceType, Type implementationType) =>
+            AddRequestPostProcessor(serviceType, implementationType, ServiceLifetime.Transient);
+
+        /// <summary>Adds a post-processor against the one contract named, with a lifetime.</summary>
+        /// <param name="serviceType">The contract to register it against.</param>
+        /// <param name="implementationType">The processor type.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPostProcessor(
+            Type serviceType,
+            Type implementationType,
+            ServiceLifetime lifetime)
+        {
+            Guard.NotNull(serviceType, nameof(serviceType));
+            Guard.NotNull(implementationType, nameof(implementationType));
+            processors.Add(implementationType);
+            processorRegistrations.Add(new Registration(serviceType, implementationType, lifetime));
+            return this;
+        }
+
+        /// <summary>Adds a post-processor with a lifetime of its own.</summary>
+        /// <typeparam name="TProcessor">The processor type.</typeparam>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPostProcessor<TProcessor>(ServiceLifetime lifetime) =>
+            AddRequestPostProcessor(typeof(TProcessor), lifetime);
+
+        /// <summary>Adds a post-processor against the one contract named.</summary>
+        /// <typeparam name="TService">The contract to register it against.</typeparam>
+        /// <typeparam name="TImplementation">The processor type.</typeparam>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPostProcessor<TService, TImplementation>() =>
+            AddRequestPostProcessor(typeof(TService), typeof(TImplementation));
+
+        /// <summary>Adds a post-processor against the one contract named, with a lifetime.</summary>
+        /// <typeparam name="TService">The contract to register it against.</typeparam>
+        /// <typeparam name="TImplementation">The processor type.</typeparam>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddRequestPostProcessor<TService, TImplementation>(ServiceLifetime lifetime) =>
+            AddRequestPostProcessor(typeof(TService), typeof(TImplementation), lifetime);
+
+        /// <summary>Adds an open-generic post-processor.</summary>
+        /// <param name="processorType">The open generic processor type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddOpenRequestPostProcessor(Type processorType) =>
+            AddRequestPostProcessor(processorType);
+
+        /// <summary>Adds an open-generic post-processor with a lifetime of its own.</summary>
+        /// <param name="processorType">The open generic processor type.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddOpenRequestPostProcessor(Type processorType, ServiceLifetime lifetime) =>
+            AddRequestPostProcessor(processorType, lifetime);
     }
 }
