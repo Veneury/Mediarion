@@ -5,6 +5,21 @@ Versioned according to [SemVer 2.0](https://semver.org/).
 
 Before v1.0, a minor version may introduce breaking changes.
 
+## [Unreleased]
+
+### Fixed
+
+- **Re-running the release job no longer fails on the last step.** Creating a GitHub release
+  that already exists is an error, so the re-run that `RELEASING.md` recommends as the way out
+  of a half-finished release always went red at the end. It did on 0.5.0: the packages went up
+  on the re-run and the job still reported failure, which reads like the release did not
+  happen. The step now attaches the packages to the release that is already there.
+- `RELEASING.md` records what 0.5.0 actually did, since the symptom was confusing: every step
+  reported success, the GitHub release was created with the four packages attached, and
+  nuget.org had nothing at that version by any route while its own status page reported
+  publishing as operational. Re-running pushed them. What to read next time is the push step
+  itself, which says whether a package went up or was skipped as already there.
+
 ## [0.5.0] - 2026-09-28
 
 ### Added
