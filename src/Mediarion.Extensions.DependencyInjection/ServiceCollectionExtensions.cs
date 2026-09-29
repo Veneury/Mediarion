@@ -78,9 +78,22 @@ namespace Mediarion
             bool processors = configuration.AutoRegisterRequestProcessors || configuration.Processors.Count > 0;
             var exceptions = new ExceptionRegistrations();
 
-            services.TryAddSingletonPublisher(configuration.NotificationPublisher);
+            services.TryAddSingletonPublisher(configuration);
 
-            services.Add(new ServiceDescriptor(typeof(IMediator), typeof(Mediator), ServiceLifetime.Transient));
+            // Left in the collection so AddMediarionStreaming can read the stream behaviours off
+            // it. They cannot be registered here: the contract they go against lives in the
+            // streaming package, which this one does not reference and must not.
+            services.Add(new ServiceDescriptor(typeof(MediarionServiceConfiguration), configuration));
+
+            Type mediator = configuration.MediatorImplementationType ?? typeof(Mediator);
+
+            if (!typeof(IMediator).IsAssignableFrom(mediator))
+            {
+                throw new MediarionException(
+                    mediator.Name + " was named as the mediator but does not implement IMediator.");
+            }
+
+            services.Add(new ServiceDescriptor(typeof(IMediator), mediator, ServiceLifetime.Transient));
             services.Add(new ServiceDescriptor(typeof(ISender), p => p.GetRequiredService<IMediator>(), ServiceLifetime.Transient));
             services.Add(new ServiceDescriptor(typeof(IPublisher), p => p.GetRequiredService<IMediator>(), ServiceLifetime.Transient));
 
@@ -91,12 +104,18 @@ namespace Mediarion
                     assembly,
                     configuration.Lifetime,
                     configuration.AutoRegisterRequestProcessors,
-                    exceptions);
+                    exceptions,
+                    configuration.TypeEvaluator);
             }
 
-            foreach (Type processor in configuration.Processors)
+            if (configuration.RegisterGenericHandlers)
             {
-                AddProcessor(services, processor, configuration.Lifetime);
+                GenericHandlerRegistrar.Add(services, configuration);
+            }
+
+            foreach (Registration processor in configuration.ProcessorRegistrations)
+            {
+                AddProcessor(services, processor);
             }
 
             // Outermost, ahead of everything the application adds. That is not where they were
@@ -109,20 +128,42 @@ namespace Mediarion
             //
             // Only when something was found to run, for the reason the processors are: an
             // open-generic behaviour costs an enumerable from the container on every request.
-            if (exceptions.Handlers)
+            // Which of the two goes on first is the whole of RequestExceptionActionProcessorStrategy.
+            // Registration order is outermost first, and both behaviours work by catching: put the
+            // actions outside the handlers and an exception a handler answered never reaches them,
+            // put them inside and every exception does. Nothing is asked per request.
+            void AddExceptionHandlers()
             {
-                services.Add(new ServiceDescriptor(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(RequestExceptionProcessorBehavior<,>),
-                    ServiceLifetime.Transient));
+                if (exceptions.Handlers)
+                {
+                    services.Add(new ServiceDescriptor(
+                        typeof(IPipelineBehavior<,>),
+                        typeof(RequestExceptionProcessorBehavior<,>),
+                        ServiceLifetime.Transient));
+                }
             }
 
-            if (exceptions.Actions)
+            void AddExceptionActions()
             {
-                services.Add(new ServiceDescriptor(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(RequestExceptionActionProcessorBehavior<,>),
-                    ServiceLifetime.Transient));
+                if (exceptions.Actions)
+                {
+                    services.Add(new ServiceDescriptor(
+                        typeof(IPipelineBehavior<,>),
+                        typeof(RequestExceptionActionProcessorBehavior<,>),
+                        ServiceLifetime.Transient));
+                }
+            }
+
+            if (configuration.RequestExceptionActionProcessorStrategy
+                == RequestExceptionActionProcessorStrategy.ApplyForUnhandledExceptions)
+            {
+                AddExceptionActions();
+                AddExceptionHandlers();
+            }
+            else
+            {
+                AddExceptionHandlers();
+                AddExceptionActions();
             }
 
             // The two that run the pre- and post-processors go on first, so a pre-processor runs
@@ -151,7 +192,7 @@ namespace Mediarion
 
             // Registered in the order they were added, because the container hands them back in
             // registration order and the pipeline reads that as outermost first.
-            foreach (Type behaviour in configuration.Behaviours)
+            foreach (Registration behaviour in configuration.BehaviourRegistrations)
             {
                 AddBehaviour(services, behaviour);
             }
@@ -220,8 +261,53 @@ namespace Mediarion
 
         [RequiresUnreferencedCode("A processor is registered against the contracts it implements.")]
         [RequiresDynamicCode("A processor is registered against generics closed at run time.")]
-        private static void AddProcessor(IServiceCollection services, Type processor, ServiceLifetime lifetime)
+        private static void AddProcessor(IServiceCollection services, Registration registration)
         {
+            Type processor = registration.ImplementationType;
+
+            // Named its contract, so that is the one it is registered against and nothing is
+            // worked out. This is how a processor that implements several ends up in front of one
+            // request rather than all of them.
+            if (registration.ServiceType is Type named)
+            {
+                services.Add(new ServiceDescriptor(named, processor, registration.Lifetime));
+                return;
+            }
+
+            // An open generic is registered against the open contract, so the container can close
+            // it per request. Which contract that is comes from the interfaces the definition
+            // declares and not from how many type parameters it has: counting was tried and let a
+            // two-parameter pipeline behaviour through as a post-processor, which the container
+            // then failed to build on the first request rather than here.
+            if (processor.IsGenericTypeDefinition)
+            {
+                var opened = false;
+
+                foreach (Type contract in processor.GetInterfaces())
+                {
+                    if (contract.IsGenericType &&
+                        Array.IndexOf(ProcessorContracts, contract.GetGenericTypeDefinition()) >= 0)
+                    {
+                        services.Add(new ServiceDescriptor(
+                            contract.GetGenericTypeDefinition(),
+                            processor,
+                            registration.Lifetime));
+
+                        opened = true;
+                    }
+                }
+
+                if (!opened)
+                {
+                    throw new MediarionException(
+                        processor.Name + " was added as an open generic processor but implements " +
+                        "neither IRequestPreProcessor<TRequest> nor " +
+                        "IRequestPostProcessor<TRequest, TResponse>.");
+                }
+
+                return;
+            }
+
             var registered = false;
 
             foreach (Type contract in processor.GetInterfaces())
@@ -229,7 +315,7 @@ namespace Mediarion
                 if (contract.IsGenericType &&
                     Array.IndexOf(ProcessorContracts, contract.GetGenericTypeDefinition()) >= 0)
                 {
-                    services.Add(new ServiceDescriptor(contract, processor, lifetime));
+                    services.Add(new ServiceDescriptor(contract, processor, registration.Lifetime));
                     registered = true;
                 }
             }
@@ -250,14 +336,22 @@ namespace Mediarion
         /// </remarks>
         [RequiresUnreferencedCode("A behaviour is registered against the contracts it implements.")]
         [RequiresDynamicCode("A behaviour is registered against generics closed at run time.")]
-        private static void AddBehaviour(IServiceCollection services, Type behaviour)
+        private static void AddBehaviour(IServiceCollection services, Registration registration)
         {
+            Type behaviour = registration.ImplementationType;
+
+            if (registration.ServiceType is Type named)
+            {
+                services.Add(new ServiceDescriptor(named, behaviour, registration.Lifetime));
+                return;
+            }
+
             if (behaviour.IsGenericTypeDefinition)
             {
                 services.Add(new ServiceDescriptor(
                     typeof(IPipelineBehavior<,>),
                     behaviour,
-                    ServiceLifetime.Transient));
+                    registration.Lifetime));
 
                 return;
             }
@@ -269,7 +363,7 @@ namespace Mediarion
                 if (contract.IsGenericType &&
                     contract.GetGenericTypeDefinition() == typeof(IPipelineBehavior<,>))
                 {
-                    services.Add(new ServiceDescriptor(contract, behaviour, ServiceLifetime.Transient));
+                    services.Add(new ServiceDescriptor(contract, behaviour, registration.Lifetime));
                     registered = true;
                 }
             }
@@ -282,7 +376,16 @@ namespace Mediarion
             }
         }
 
-        private static void TryAddSingletonPublisher(this IServiceCollection services, INotificationPublisher? publisher)
+        /// <remarks>
+        /// An instance beats a type, because an instance cannot have been given by accident: the
+        /// only way to set it is to have built one. With neither, the handlers of a notification
+        /// run one after another.
+        /// </remarks>
+        [RequiresUnreferencedCode("A publisher named by type is built by the container.")]
+        [RequiresDynamicCode("A publisher named by type is built by the container.")]
+        private static void TryAddSingletonPublisher(
+            this IServiceCollection services,
+            MediarionServiceConfiguration configuration)
         {
             foreach (ServiceDescriptor descriptor in services)
             {
@@ -292,9 +395,32 @@ namespace Mediarion
                 }
             }
 
+            if (configuration.NotificationPublisher is INotificationPublisher instance)
+            {
+                services.Add(new ServiceDescriptor(typeof(INotificationPublisher), instance));
+                return;
+            }
+
+            if (configuration.NotificationPublisherType is Type named)
+            {
+                if (!typeof(INotificationPublisher).IsAssignableFrom(named))
+                {
+                    throw new MediarionException(
+                        named.Name + " was named as the notification publisher but does not " +
+                        "implement INotificationPublisher.");
+                }
+
+                services.Add(new ServiceDescriptor(
+                    typeof(INotificationPublisher),
+                    named,
+                    ServiceLifetime.Singleton));
+
+                return;
+            }
+
             services.Add(new ServiceDescriptor(
                 typeof(INotificationPublisher),
-                publisher ?? new ForeachAwaitPublisher()));
+                new ForeachAwaitPublisher()));
         }
 
         [RequiresUnreferencedCode("Handlers are found by walking the types in an assembly.")]
@@ -304,22 +430,29 @@ namespace Mediarion
             Assembly assembly,
             ServiceLifetime lifetime,
             bool processors,
-            ExceptionRegistrations exceptions)
+            ExceptionRegistrations exceptions,
+            Func<Type, bool> evaluator)
         {
             foreach (Type candidate in assembly.GetTypes())
             {
+                if (!evaluator(candidate))
+                {
+                    continue;
+                }
+
                 // An open generic handler is skipped. The container closes an open
                 // implementation against an open service type by matching the type parameters
                 // position for position, and a handler's do not line up: the request argument of
                 // IRequestHandler<Wrapped<T>, T> is Wrapped<T> and not T, so registering it
                 // would resolve to nothing.
                 //
-                // Refusing it here was tried and reverted. The other library registers it
-                // without complaint and fails on the first send with a container message about a
-                // missing service, so an application that starts today would stop starting — a
-                // worse failure than the one it replaces, and for a request that may never be
-                // sent. What catches it properly is MDR0004, a compile-time error at the
-                // declaration, and failing that the send says which request has no handler.
+                // Refusing it here was tried and reverted: an application that starts today
+                // would stop starting, over a request that may never be sent.
+                //
+                // Skipped here, not unsupported. Set RegisterGenericHandlers and the closing is
+                // done at registration instead, one concrete handler per candidate type, which is
+                // what the other library does under the same flag. Without it, the send says
+                // which request has no handler.
                 if (candidate.IsAbstract || candidate.IsInterface || candidate.IsGenericTypeDefinition)
                 {
                     continue;

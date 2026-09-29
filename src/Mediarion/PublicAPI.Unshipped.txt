@@ -1,1 +1,4 @@
 #nullable enable
+Mediarion.NotificationHandler<TNotification>
+Mediarion.NotificationHandler<TNotification>.NotificationHandler() -> void
+abstract Mediarion.NotificationHandler<TNotification>.Handle(TNotification notification) -> void

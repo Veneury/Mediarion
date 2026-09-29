@@ -35,6 +35,13 @@
 
   <ItemGroup>
     <ProjectReference Include="../Mediarion/Mediarion.csproj" />
+    <!--
+      For MediarionServiceConfiguration, so a stream behaviour can be added where every other
+      behaviour is added. AddMediarionStreaming is a container extension and anyone calling it
+      has already called AddMediarion, so the dependency was there in practice before it was
+      written down. The core package still has none.
+    -->
+    <ProjectReference Include="../Mediarion.Extensions.DependencyInjection/Mediarion.Extensions.DependencyInjection.csproj" />
   </ItemGroup>
 
   <ItemGroup>

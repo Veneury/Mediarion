@@ -183,20 +183,31 @@ migration sample streams on both libraries from one piece of source. What does n
 mocking `ISender.CreateStream`, since no mocking library can intercept an extension method: take
 `IStreamSender` in the code under test and mock that.
 
-## One thing it will not do
+## Open generic handlers
 
-An **open generic handler** — `IRequestHandler<Wrapped<T>, T>` — cannot be registered, here or in
-MediatR. A container closes an open implementation against an open service type by matching type
-parameters position for position, and a handler's do not line up: the request argument is
+An **open generic handler** — `IRequestHandler<Wrapped<T>, T>` — cannot be handed to a container
+as it stands. A container closes an open implementation against an open service type by matching
+type parameters position for position, and a handler's do not line up: the request argument is
 `Wrapped<T>` and not `T`.
 
-MediatR registers it without complaint and fails on the first send with a container message about a
-missing service. Here the generator makes it a compile-time error at the declaration (`MDR0004`),
-and if you are not using the generator the send says which request has no handler.
+Both libraries work around that the same way, and neither does it unless asked:
 
-Write one closed handler per request type, or put the shared part in an open generic
-`IPipelineBehavior<TRequest, TResponse>`, which **is** supported and is usually what the generic
-handler was reaching for.
+```csharp
+cfg.RegisterGenericHandlers = true;
+```
+
+That closes the handler at registration, once per candidate type, instead of leaving it to the
+container. Candidates are the concrete types of the assemblies being scanned, so
+`Wrapped<Order>` finds a handler and `Wrapped<int>` does not — `int` is not a type the scan
+enumerates. `MaxTypesClosing`, `MaxGenericTypeParameters`, `MaxGenericTypeRegistrations` and
+`RegistrationTimeout` bound the cross product, with the same defaults as MediatR.
+
+Without the flag the handler is skipped and the send says which request has no handler.
+
+**Ahead of time is different.** The generated dispatch is a switch over request types known while
+the project compiles, and a closed generic is not one of them, so the generator warns (`MDR0004`)
+and leaves it out. There, write one closed handler per request type, or put the shared part in an
+open generic `IPipelineBehavior<TRequest, TResponse>`, which is supported either way.
 
 ## Speed
 

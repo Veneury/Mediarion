@@ -67,7 +67,7 @@ El generador dice lo que no puede hacer, en la declaración, mientras el proyect
 | `MDR0001` | La clase marcada con `[GeneratedMediator]` no es `partial`, así que el despacho no tiene dónde ir. **Error.** |
 | `MDR0002` | Dos handlers responden a un request. Un request tiene un handler; usa una notificación para el otro. **Error.** |
 | `MDR0003` | Un request no tiene handler en este proyecto, así que enviarlo fallará en tiempo de ejecución salvo que se registre uno desde otro sitio. **Aviso**, porque el handler puede vivir legítimamente en otro ensamblado. |
-| `MDR0004` | Un handler genérico abierto, que [ningún contenedor puede cerrar](pipeline.md#handlers-genéricos-abiertos). **Error.** |
+| `MDR0004` | Un handler genérico abierto. El despacho generado es un `switch` sobre tipos de request conocidos al compilar y un genérico cerrado no es uno de ellos, así que queda fuera. **Aviso**, porque [el escaneo en tiempo de ejecución sí puede cerrarlo](pipeline.md#handlers-genéricos-abiertos) y negarse a compilar rechazaría código que funciona. |
 
 ## Comprobado, no supuesto
 

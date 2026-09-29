@@ -1,9 +1,9 @@
 {
-  "articles/aot.md": "68ff082e35a588b496570281d20b2097e7f81290",
+  "articles/aot.md": "9e40b8e0d4d8b80f2d66260eb808e267cbab3f41",
   "articles/getting-started.md": "4c67f8d5814421fe6076f9fe9d819617648bd15b",
   "articles/migrating-from-mediatr.md": "30882c0c0804b2e2cc4c49b193ba78db4feabaca",
-  "articles/performance.md": "fa413a117bfd20f56351c751d4d111d686d75451",
-  "articles/pipeline.md": "5fa4e40286780ac29bb1e7cc6fbfa47971a6a58d",
+  "articles/performance.md": "9e206c5280a049f30748f8696c8c7fbd52939ab4",
+  "articles/pipeline.md": "35067088408f62ab6a8c94b5734ee794ca06dbb6",
   "articles/streaming.md": "99d3778ad74c516c5c9ab1a6e55dd05b8819197c",
   "index.md": "d859fefebe27a2d2b4c1c0ce50ca886352fd1d74"
 }

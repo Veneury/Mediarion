@@ -38,10 +38,12 @@ namespace Mediarion.Benchmarks
         private global::Mediarion.ISender mediarion = null!;
         private ForGenerated.AppMediator generated = null!;
         private global::MediatR.ISender mediatr = null!;
+        private global::Mediator.IMediator mediator = null!;
 
         private ByHand.Work handwrittenRequest = null!;
         private ForMediarion.Work mediarionRequest = null!;
         private ForMediatR.Work mediatrRequest = null!;
+        private ForMediator.Work mediatorRequest = null!;
 
         [GlobalSetup]
         public void Setup()
@@ -93,6 +95,22 @@ namespace Mediarion.Benchmarks
 
             mediatr = forMediatR.BuildServiceProvider().GetRequiredService<global::MediatR.ISender>();
             mediatrRequest = new ForMediatR.Work { Value = 1 };
+
+            // Mediator finds its handlers at compile time, so there is nothing to scan; the four
+            // behaviours are registered against the container the way its own readme does it.
+            var forMediator = new ServiceCollection();
+            forMediator.AddMediator();
+            forMediator.AddSingleton(
+                typeof(global::Mediator.IPipelineBehavior<,>), typeof(ForMediator.Step1<,>));
+            forMediator.AddSingleton(
+                typeof(global::Mediator.IPipelineBehavior<,>), typeof(ForMediator.Step2<,>));
+            forMediator.AddSingleton(
+                typeof(global::Mediator.IPipelineBehavior<,>), typeof(ForMediator.Step3<,>));
+            forMediator.AddSingleton(
+                typeof(global::Mediator.IPipelineBehavior<,>), typeof(ForMediator.Step4<,>));
+
+            mediator = forMediator.BuildServiceProvider().GetRequiredService<global::Mediator.IMediator>();
+            mediatorRequest = new ForMediator.Work { Value = 1 };
         }
 
         [Benchmark(Baseline = true)]
@@ -106,6 +124,16 @@ namespace Mediarion.Benchmarks
         [Benchmark]
         public Task<int> Mediarion_Generated() =>
             generated.Send(mediarionRequest);
+
+        /// <remarks>
+        /// Not held by the budget. It is here to answer the question the readme raises — the
+        /// other scenario has Mediator winning on an empty pipeline, which is the case where the
+        /// fixed cost of dispatch is the whole measurement, and says nothing about what four
+        /// behaviours cost.
+        /// </remarks>
+        [Benchmark]
+        public ValueTask<int> Mediator() =>
+            mediator.Send(mediatorRequest);
 
         [Benchmark]
         public Task<int> Manual() =>

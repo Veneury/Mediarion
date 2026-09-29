@@ -25,12 +25,19 @@ namespace Mediarion.SourceGeneration
             DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
+        /// <remarks>
+        /// A warning and not an error, which it was until the other library was asked what it
+        /// does with one. It closes them at registration under RegisterGenericHandlers, so an
+        /// error here would have refused to compile code that works over there — the opposite of
+        /// what this library is for. The generator still cannot write a dispatch for one, so it
+        /// says so.
+        /// </remarks>
         internal static readonly DiagnosticDescriptor OpenGenericHandler = new DiagnosticDescriptor(
             "MDR0004",
-            "Open generic handler is not supported",
-            "'{0}' is an open generic handler. Write one closed handler per request type, or put the shared part in an open generic IPipelineBehavior, which is supported.",
+            "Open generic handler is not written into the generated dispatch",
+            "'{0}' is an open generic handler, which the generated mediator cannot dispatch: the request type is only known once it is closed. At run time, set RegisterGenericHandlers to close it over the scanned types. Ahead of time, write one closed handler per request type, or put the shared part in an open generic IPipelineBehavior.",
             Category,
-            DiagnosticSeverity.Error,
+            DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
 
         internal static readonly DiagnosticDescriptor NoHandler = new DiagnosticDescriptor(

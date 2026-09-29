@@ -65,7 +65,7 @@ The generator says what it cannot do, at the declaration, while the project comp
 | `MDR0001` | The class marked `[GeneratedMediator]` is not `partial`, so the dispatch has nowhere to go. **Error.** |
 | `MDR0002` | Two handlers answer one request. A request has one handler; use a notification for the other. **Error.** |
 | `MDR0003` | A request has no handler in this project, so sending it will fail at run time unless one is registered from somewhere else. **Warning**, because the handler may legitimately live in another assembly. |
-| `MDR0004` | An open generic handler, which [no container can close](pipeline.md#open-generic-handlers). **Error.** |
+| `MDR0004` | An open generic handler. The generated dispatch is a switch over request types known at compile time and a closed generic is not one of them, so it is left out. **Warning**, because [the run-time scan can close it](pipeline.md#open-generic-handlers) and refusing to compile would turn working code away. |
 
 ## Checked, not assumed
 

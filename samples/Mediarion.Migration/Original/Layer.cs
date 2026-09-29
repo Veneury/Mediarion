@@ -176,6 +176,28 @@ namespace MigrationSample.Original
         }
     }
 
+    /// <remarks>
+    /// An action on the request that Salvage rescues. The two libraries disagreed here and the
+    /// sample did not notice, because the rescue was on one request and the only action was on
+    /// another, so nothing ever had both. By default an action does not see an exception a
+    /// handler answered, and this is the line that says so.
+    /// </remarks>
+    public sealed class Overhear : IRequestExceptionAction<Impossible, InvalidOperationException>
+    {
+        private readonly Trace trace;
+
+        public Overhear(Trace trace)
+        {
+            this.trace = trace;
+        }
+
+        public Task Execute(Impossible request, InvalidOperationException exception, CancellationToken cancellationToken)
+        {
+            trace.Add("overheard " + exception.Message);
+            return Task.CompletedTask;
+        }
+    }
+
     public sealed class Doomed : IRequest<Receipt>
     {
     }

@@ -40,7 +40,92 @@ namespace Mediarion
                 Scan(services, assembly);
             }
 
+            AddConfiguredBehaviours(services);
+
             return services;
+        }
+
+        /// <summary>
+        /// Registers the stream behaviours that were added to <c>AddMediarion</c>'s configuration.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// They are asked for over there and registered here, because the contract they go against
+        /// is in this package and the configuration is in one that does not reference it. The
+        /// configuration is left in the collection by <c>AddMediarion</c> for exactly this.
+        /// </para>
+        /// <para>
+        /// They go on after the ones found by scanning, so a behaviour named by hand wraps one
+        /// that was found — the same way the request pipeline puts what the application added
+        /// inside what the library put there.
+        /// </para>
+        /// </remarks>
+        [RequiresUnreferencedCode("A stream behaviour is registered against the contracts it implements.")]
+        [RequiresDynamicCode("A stream behaviour is registered against generics closed at run time.")]
+        private static void AddConfiguredBehaviours(IServiceCollection services)
+        {
+            MediarionServiceConfiguration? configuration = null;
+
+            foreach (ServiceDescriptor descriptor in services)
+            {
+                if (descriptor.ServiceType == typeof(MediarionServiceConfiguration) &&
+                    descriptor.ImplementationInstance is MediarionServiceConfiguration found)
+                {
+                    configuration = found;
+                }
+            }
+
+            if (configuration is null)
+            {
+                return;
+            }
+
+            foreach (Registration registration in configuration.StreamBehaviourRegistrations)
+            {
+                AddStreamBehaviour(services, registration);
+            }
+        }
+
+        [RequiresUnreferencedCode("A stream behaviour is registered against the contracts it implements.")]
+        [RequiresDynamicCode("A stream behaviour is registered against generics closed at run time.")]
+        private static void AddStreamBehaviour(IServiceCollection services, Registration registration)
+        {
+            Type behaviour = registration.ImplementationType;
+
+            if (registration.ServiceType is Type named)
+            {
+                services.Add(new ServiceDescriptor(named, behaviour, registration.Lifetime));
+                return;
+            }
+
+            if (behaviour.IsGenericTypeDefinition)
+            {
+                services.Add(new ServiceDescriptor(
+                    typeof(IStreamPipelineBehavior<,>),
+                    behaviour,
+                    registration.Lifetime));
+
+                return;
+            }
+
+            var registered = false;
+
+            foreach (Type contract in behaviour.GetInterfaces())
+            {
+                if (contract.IsGenericType &&
+                    contract.GetGenericTypeDefinition() == typeof(IStreamPipelineBehavior<,>))
+                {
+                    services.Add(new ServiceDescriptor(contract, behaviour, registration.Lifetime));
+                    registered = true;
+                }
+            }
+
+            if (!registered)
+            {
+                throw new MediarionException(
+                    behaviour.Name + " was added as a stream behaviour but does not implement " +
+                    "IStreamPipelineBehavior<TRequest, TResponse>.");
+            }
         }
 
         /// <remarks>

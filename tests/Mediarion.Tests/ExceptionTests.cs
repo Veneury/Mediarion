@@ -133,6 +133,48 @@ namespace Mediarion.Tests
         }
     }
 
+    public sealed class Risky : IRequest<int>
+    {
+    }
+
+    public sealed class RiskyHandler : IRequestHandler<Risky, int>
+    {
+        public Task<int> Handle(Risky request, CancellationToken cancellationToken) =>
+            throw new TimeoutException("too slow");
+    }
+
+    /// <summary>Answers in the exception's place, so the request succeeds.</summary>
+    public sealed class RescueRisky : IRequestExceptionHandler<Risky, int, TimeoutException>
+    {
+        private readonly Trail trail;
+
+        public RescueRisky(Trail trail) => this.trail = trail;
+
+        public Task Handle(
+            Risky request,
+            TimeoutException exception,
+            RequestExceptionHandlerState<int> state,
+            CancellationToken cancellationToken)
+        {
+            trail.Lines.Add("rescued");
+            state.SetHandled(7);
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary>Only watches. Whether it sees a rescued exception is the strategy.</summary>
+    public sealed class WatchRisky : IRequestExceptionAction<Risky, TimeoutException>
+    {
+        private readonly Trail trail;
+
+        public WatchRisky(Trail trail) => this.trail = trail;
+
+        public Task Execute(Risky request, TimeoutException exception, CancellationToken cancellationToken)
+        {
+            trail.Lines.Add("watched");
+            return Task.CompletedTask;
+        }
+    }
     public sealed class ExceptionTests
     {
         private static ServiceProvider Build()
@@ -234,6 +276,66 @@ namespace Mediarion.Tests
 
             error.ShouldBeOfType<InvalidOperationException>();
             error.InnerException.ShouldBeNull();
+        }
+
+        /// <remarks>
+        /// <para>
+        /// The default, and it is the other library's default rather than a preference: an
+        /// action only watches, and an exception a handler has already answered in the place of
+        /// is not a failure any more.
+        /// </para>
+        /// <para>
+        /// This is here because the two libraries disagreed about it through four releases. An
+        /// action here ran whatever happened, which is that library's ApplyForAllExceptions and
+        /// not its default, so a migration would have started recording failures it used to pass
+        /// over — silently, with nothing failing to compile. Both were run side by side to
+        /// settle it rather than read from the source.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public async Task An_action_does_not_see_an_exception_a_handler_answered()
+        {
+            ServiceProvider provider = Build();
+
+            int answer = await provider.GetRequiredService<ISender>().Send(new Risky());
+
+            answer.ShouldBe(7);
+            provider.GetRequiredService<Trail>().Lines.ShouldBe(new[] { "rescued" });
+        }
+
+        [Fact]
+        public async Task An_action_sees_every_exception_when_asked_to()
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<Trail>();
+            services.AddMediarion(configuration =>
+            {
+                configuration.RegisterServicesFromAssemblyContaining<ExceptionTests>();
+                configuration.RequestExceptionActionProcessorStrategy =
+                    RequestExceptionActionProcessorStrategy.ApplyForAllExceptions;
+            });
+
+            using ServiceProvider provider = services.BuildServiceProvider();
+
+            int answer = await provider.GetRequiredService<ISender>().Send(new Risky());
+
+            answer.ShouldBe(7);
+            provider.GetRequiredService<Trail>().Lines.ShouldBe(new[] { "watched", "rescued" });
+        }
+
+        /// <remarks>
+        /// The half that has to keep working either way: nothing answered, so the action runs
+        /// and the exception carries on out.
+        /// </remarks>
+        [Fact]
+        public async Task An_action_always_sees_an_exception_nobody_answered()
+        {
+            ServiceProvider provider = Build();
+
+            await Should.ThrowAsync<InvalidOperationException>(
+                () => provider.GetRequiredService<ISender>().Send(new Explode()));
+
+            provider.GetRequiredService<Trail>().Lines.ShouldContain("noted boom");
         }
     }
 }

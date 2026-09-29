@@ -239,5 +239,36 @@ namespace Mediarion.Tests
 
             await provider.GetRequiredService<IPublisher>().Publish(new Arrived { Who = "Ada" });
         }
+
+        /// <remarks>
+        /// A stream behaviour added where every other behaviour is added. The configuration is in
+        /// the package with no streaming in it, so it only records the type; AddMediarionStreaming
+        /// is what registers it, and this is the test that the hand-off works.
+        /// </remarks>
+        [Fact]
+        public async Task A_stream_behaviour_can_be_added_to_the_configuration()
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<Marks>();
+            services.AddSingleton<Log>();
+            services.AddMediarion(configuration =>
+            {
+                configuration.RegisterServicesFromAssemblyContaining<StreamTests>();
+                configuration.AddStreamBehavior<Doubling>();
+            });
+            services.AddMediarionStreaming(typeof(StreamTests).Assembly);
+
+            using ServiceProvider provider = services.BuildServiceProvider();
+            ISender sender = provider.GetRequiredService<ISender>();
+
+            var seen = new List<int>();
+
+            await foreach (int value in sender.CreateStream(new CountTo { Last = 3 }))
+            {
+                seen.Add(value);
+            }
+
+            seen.ShouldBe(new[] { 2, 4, 6 });
+        }
     }
 }
