@@ -20,10 +20,11 @@ below.
 
 | | Run 1 | Run 2 | Run 3 | Allocated |
 |---|---|---|---|---|
-| Written out by hand | 0.91 ns | 0.80 ns | 0.86 ns | 0 B |
-| **Mediarion, generated** | 221 ns | 223 ns | 200 ns | 688 B |
-| **Mediarion, run time** | 288 ns | 221 ns | 226 ns | 688 B |
-| MediatR 12.5.0 | 346 ns | 338 ns | 329 ns | 864 B |
+| Written out by hand | 0.26 ns | 0.54 ns | 0.86 ns | 0 B |
+| Mediator 3.1.0-rc.1 | 22 ns | 24 ns | 24 ns | 0 B |
+| **Mediarion, generated** | 166 ns | 152 ns | 185 ns | 688 B |
+| **Mediarion, run time** | 174 ns | 184 ns | 161 ns | 688 B |
+| MediatR 12.5.0 | 256 ns | 229 ns | 246 ns | 864 B |
 
 The hand-written row is four private calls that pass a request down to a handler, which is what
 the code would be if nobody had reached for a mediator. The JIT flattens it into one call ending
@@ -35,6 +36,14 @@ Against MediatR, which does the same work through a pipeline it builds the same 
 run-time path measured 0.792, 0.839, 0.833, 0.654 and 0.688 across five runs, and the generated
 path 0.696, 0.662, 0.640, 0.659 and 0.609. Both are faster, the generated one by about a third,
 and both allocate 688 bytes against 864.
+
+Mediator is in this table now because the other one raised a question it could not answer. There
+it wins on an empty pipeline, where the whole measurement is the fixed cost of dispatch, and the
+obvious guess was that four behaviours would close the gap. **The gap gets wider.** Mediator runs
+the same four behaviours in about 22 nanoseconds and allocates nothing at all, against 170 and 688
+bytes here — seven or eight times faster rather than two and a half. It generates the pipeline
+itself at compile time and uses `ValueTask` throughout, so there is no delegate chain to build and
+nothing to box.
 
 ## One request, no behaviours, six ways
 

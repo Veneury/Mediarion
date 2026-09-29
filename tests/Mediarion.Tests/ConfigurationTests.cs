@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Mediarion.NotificationPublishers;
 using Mediarion.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -91,6 +92,56 @@ namespace Mediarion.Tests
         {
             ledger.Lines.Add("before " + typeof(TRequest).Name);
             return Task.CompletedTask;
+        }
+    }
+
+
+    public sealed class Told : INotification
+    {
+    }
+
+    /// <summary>Derives from the base, so there is no Task to return.</summary>
+    public sealed class WriteItDown : NotificationHandler<Told>
+    {
+        private readonly Tally tally;
+
+        public WriteItDown(Tally tally) => this.tally = tally;
+
+        protected override void Handle(Told notification) => tally.Lines.Add("written");
+    }
+
+    public sealed class Skipped : IRequest<string>
+    {
+    }
+
+    public sealed class SkippedHandler : IRequestHandler<Skipped, string>
+    {
+        public Task<string> Handle(Skipped request, CancellationToken cancellationToken) =>
+            Task.FromResult("skipped");
+    }
+
+    public sealed class Louder : Mediator
+    {
+        public Louder(IServiceProvider services)
+            : base(services)
+        {
+        }
+    }
+
+    public sealed class CountingPublisher : INotificationPublisher
+    {
+        private readonly Tally tally;
+
+        public CountingPublisher(Tally tally) => this.tally = tally;
+
+        public Task Publish(
+            IReadOnlyList<NotificationHandlerExecutor> handlers,
+            object notification,
+            CancellationToken cancellationToken)
+        {
+            tally.Lines.Add("published to " + handlers.Count);
+
+            return new ForeachAwaitPublisher().Publish(handlers, notification, cancellationToken);
         }
     }
 
@@ -203,6 +254,73 @@ namespace Mediarion.Tests
 
             error.Message.ShouldContain("Counted");
             error.Message.ShouldContain("IRequestPreProcessor");
+        }
+
+        /// <remarks>
+        /// The base class exists so a handler with nothing to await does not have to end in
+        /// <c>return Task.CompletedTask</c>. It still has to be an ordinary handler as far as the
+        /// scan and the publisher are concerned, which is what this checks.
+        /// </remarks>
+        [Fact]
+        public async Task A_handler_deriving_from_the_base_is_found_and_run()
+        {
+            using ServiceProvider provider = Build(_ => { });
+
+            await provider.GetRequiredService<IPublisher>().Publish(new Told());
+
+            provider.GetRequiredService<Tally>().Lines.ShouldBe(new[] { "written" });
+        }
+
+        [Fact]
+        public async Task A_type_the_evaluator_turns_down_is_not_registered()
+        {
+            using ServiceProvider provider = Build(configuration =>
+                configuration.TypeEvaluator = type => type != typeof(SkippedHandler));
+
+            await Should.ThrowAsync<MediarionException>(
+                () => provider.GetRequiredService<ISender>().Send(new Skipped()));
+        }
+
+        [Fact]
+        public async Task A_type_the_evaluator_keeps_still_is()
+        {
+            using ServiceProvider provider = Build(_ => { });
+
+            (await provider.GetRequiredService<ISender>().Send(new Skipped())).ShouldBe("skipped");
+        }
+
+        [Fact]
+        public void The_mediator_can_be_one_of_your_own()
+        {
+            using ServiceProvider provider = Build(configuration =>
+                configuration.MediatorImplementationType = typeof(Louder));
+
+            provider.GetRequiredService<IMediator>().ShouldBeOfType<Louder>();
+        }
+
+        [Fact]
+        public void A_mediator_that_is_not_one_says_so()
+        {
+            MediarionException error = Should.Throw<MediarionException>(() => Build(configuration =>
+                configuration.MediatorImplementationType = typeof(Tally)));
+
+            error.Message.ShouldContain("IMediator");
+        }
+
+        /// <remarks>
+        /// By type rather than by instance, which is the only way a publisher that needs something
+        /// injected can be used at all.
+        /// </remarks>
+        [Fact]
+        public async Task The_publisher_can_be_named_by_type_and_built_by_the_container()
+        {
+            using ServiceProvider provider = Build(configuration =>
+                configuration.NotificationPublisherType = typeof(CountingPublisher));
+
+            await provider.GetRequiredService<IPublisher>().Publish(new Told());
+
+            provider.GetRequiredService<Tally>().Lines
+                .ShouldBe(new[] { "published to 1", "written" });
         }
     }
 }

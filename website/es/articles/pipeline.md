@@ -152,15 +152,39 @@ De fuera hacia dentro:
 
 ## Handlers genéricos abiertos
 
-Un **handler genérico abierto** — `IRequestHandler<Wrapped<T>, T>` — no se puede registrar, ni
-aquí ni en MediatR. Un contenedor cierra una implementación abierta contra un tipo de servicio
+Un **handler genérico abierto** — `IRequestHandler<Wrapped<T>, T>` — no se le puede entregar a un
+contenedor tal cual. Un contenedor cierra una implementación abierta contra un tipo de servicio
 abierto emparejando los parámetros de tipo posición por posición, y los de un handler no cuadran:
 el argumento del request es `Wrapped<T>` y no `T`.
 
-MediatR lo registra sin quejarse y falla en el primer envío con un mensaje del contenedor sobre un
-servicio que falta. Aquí, [el generador](aot.md) lo convierte en un error de compilación en la
-declaración (`MDR0004`), y sin el generador el envío dice qué request no tiene handler.
+Las dos bibliotecas lo rodean igual, y ninguna lo hace si no se lo pides:
 
-Escribe un handler cerrado por cada tipo de request, o pon la parte compartida en un
-`IPipelineBehavior<TRequest, TResponse>` genérico abierto — que **sí** está soportado, y suele ser
-lo que el handler genérico buscaba.
+```csharp
+services.AddMediarion(cfg =>
+{
+    cfg.RegisterServicesFromAssemblyContaining<Program>();
+    cfg.RegisterGenericHandlers = true;
+});
+```
+
+El cierre se hace en el registro, una vez por cada tipo candidato, en lugar de dejárselo al
+contenedor. Los candidatos son los tipos concretos de los ensamblados que se recorren, así que
+`Wrapped<Order>` encuentra handler y `Wrapped<int>` no: `int` no es un tipo que el escaneo
+enumere, y cerrar sobre todos los tipos que el runtime puede nombrar no es un trabajo finito.
+
+Cuatro ajustes acotan el producto cartesiano, con los valores por defecto de MediatR:
+
+| | |
+|---|---|
+| `MaxTypesClosing` | sobre cuántos tipos se puede cerrar un handler (100) |
+| `MaxGenericTypeParameters` | cuántos parámetros de tipo puede tener antes de dejarlo estar (10) |
+| `MaxGenericTypeRegistrations` | cuántos handlers cerrados se pueden registrar en total (125.000) |
+| `RegistrationTimeout` | cuánto puede durar el cierre, en milisegundos (15.000) |
+
+Sin la bandera el handler se salta y el envío dice qué request no tiene handler.
+
+**[Ahead of time](aot.md) es distinto.** El despacho generado es un `switch` sobre tipos de request
+conocidos al compilar, y un genérico cerrado no es uno de ellos, así que el generador avisa
+(`MDR0004`) y lo deja fuera. Ahí, escribe un handler cerrado por cada tipo de request, o pon la
+parte compartida en un `IPipelineBehavior<TRequest, TResponse>` genérico abierto — que **sí** está
+soportado de las dos maneras, y suele ser lo que el handler genérico buscaba.

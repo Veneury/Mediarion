@@ -5,6 +5,59 @@ Versioned according to [SemVer 2.0](https://semver.org/).
 
 Before v1.0, a minor version may introduce breaking changes.
 
+## [Unreleased]
+
+### Added
+
+- **Every registration overload the other library has.** A `ServiceLifetime` on each `Add*`, the
+  two-type forms that point a behaviour or a processor at one contract rather than at everything it
+  could serve, `AddOpenBehaviors`, `AddOpenRequestPreProcessor` and `AddOpenRequestPostProcessor`,
+  and `AddStreamBehavior` and `AddOpenStreamBehavior` on the configuration instead of only on the
+  container. None of it compiled here before, so a registration moved over had to be rewritten by
+  hand — the thing this library exists not to make people do. They are additions: nothing shipped
+  changed shape.
+- **`RegisterGenericHandlers`**, which closes an open generic handler over the scanned types at
+  registration rather than leaving it to a container that cannot. Candidates are the concrete types
+  of the assemblies being scanned, so `Wrapped<Order>` finds a handler and `Wrapped<int>` does not.
+  `MaxTypesClosing`, `MaxGenericTypeParameters`, `MaxGenericTypeRegistrations` and
+  `RegistrationTimeout` bound the cross product, with the same defaults as the other library.
+- `TypeEvaluator`, to keep the scan away from a type. `MediatorImplementationType` and
+  `NotificationPublisherType`, to name either by type and have the container build it —
+  the only way a publisher that needs something injected can be used at all.
+- `NotificationHandler<TNotification>`, a base class for a handler with nothing to await.
+
+### Fixed
+
+- **The exception actions ran where the other library leaves them alone.** An exception handler can
+  answer in the exception's place; an action only watches. Through four releases an action here ran
+  even when a handler had already answered, which is the other library's `ApplyForAllExceptions`
+  and not its default. Nothing failed to compile, so a migrated application quietly started
+  recording failures it used to pass over. `RequestExceptionActionProcessorStrategy` now says
+  which, defaulting to the other library's default.
+- The migration sample had the rescue on one request and the only action on another, so nothing
+  ever had both and the difference went unnoticed. It has both now.
+- **`MDR0004` was an error, and it was wrong.** It said an open generic handler could not be
+  registered by any container, here or there. The first half is true and the second is not: the
+  other library closes them at registration under `RegisterGenericHandlers`, so a compile-time
+  error here refused code that works over there — a migration break of our own making. It is a
+  warning now, and says what it actually means: the generated dispatch is a switch over request
+  types known at compile time, and a closed generic is not one of them.
+
+### Changed
+
+- `Mediarion.Streaming` now depends on `Mediarion.Extensions.DependencyInjection`, so a stream
+  behaviour can be added where every other behaviour is added. Anyone calling
+  `AddMediarionStreaming` had already called `AddMediarion`, so the dependency was there in
+  practice before it was written down. The core package still has none.
+
+### Measured
+
+- **Mediator runs four behaviours in about 22 nanoseconds and allocates nothing**, against 170 and
+  688 bytes here. The published comparison had it winning only on an empty pipeline, where the
+  whole measurement is the fixed cost of dispatch, and the reasonable guess was that a real
+  pipeline would close the gap. It widens it: seven or eight times rather than two and a half. The
+  benchmark and both readmes now say so.
+
 ## [0.4.0] - 2026-09-28
 
 ### Added

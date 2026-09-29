@@ -17,10 +17,11 @@ validación, una transacción, una métrica.
 
 | | Corrida 1 | Corrida 2 | Corrida 3 | Reservado |
 |---|---|---|---|---|
-| Escrito a mano | 0.91 ns | 0.80 ns | 0.86 ns | 0 B |
-| **Mediarion, generado** | 221 ns | 223 ns | 200 ns | 688 B |
-| **Mediarion, en tiempo de ejecución** | 288 ns | 221 ns | 226 ns | 688 B |
-| MediatR 12.5.0 | 346 ns | 338 ns | 329 ns | 864 B |
+| Escrito a mano | 0.26 ns | 0.54 ns | 0.86 ns | 0 B |
+| Mediator 3.1.0-rc.1 | 22 ns | 24 ns | 24 ns | 0 B |
+| **Mediarion, generado** | 166 ns | 152 ns | 185 ns | 688 B |
+| **Mediarion, en tiempo de ejecución** | 174 ns | 184 ns | 161 ns | 688 B |
+| MediatR 12.5.0 | 256 ns | 229 ns | 246 ns | 864 B |
 
 La fila escrita a mano son cuatro llamadas privadas que pasan un request hacia un handler — lo que
 sería el código si nadie hubiera echado mano de un mediador. El JIT lo aplana en una sola llamada
@@ -32,6 +33,14 @@ Contra MediatR, que hace el mismo trabajo a través de un pipeline que construye
 en tiempo de ejecución de Mediarion midió 0.792, 0.839, 0.833, 0.654 y 0.688 en cinco corridas, y
 el camino generado 0.696, 0.662, 0.640, 0.659 y 0.609. **Los dos son más rápidos, el generado como
 en un tercio**, y los dos reservan 688 bytes contra 864.
+
+Mediator está en esta tabla porque la otra planteaba una pregunta que no podía responder. Allí gana
+con el pipeline vacío, donde toda la medición es el coste fijo del despacho, y lo que uno supondría
+es que cuatro behaviours cierran la distancia. **La distancia se abre.** Mediator pasa esos mismos
+cuatro behaviours en unos 22 nanosegundos y no reserva nada, contra 170 y 688 bytes aquí — siete u
+ocho veces más rápido en lugar de dos y media. Genera el pipeline entero al compilar y usa
+`ValueTask` de principio a fin, así que no hay cadena de delegados que construir ni nada que
+encajar en un objeto.
 
 ## Un request sin behaviours
 

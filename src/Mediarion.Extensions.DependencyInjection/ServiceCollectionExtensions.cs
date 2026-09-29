@@ -78,9 +78,22 @@ namespace Mediarion
             bool processors = configuration.AutoRegisterRequestProcessors || configuration.Processors.Count > 0;
             var exceptions = new ExceptionRegistrations();
 
-            services.TryAddSingletonPublisher(configuration.NotificationPublisher);
+            services.TryAddSingletonPublisher(configuration);
 
-            services.Add(new ServiceDescriptor(typeof(IMediator), typeof(Mediator), ServiceLifetime.Transient));
+            // Left in the collection so AddMediarionStreaming can read the stream behaviours off
+            // it. They cannot be registered here: the contract they go against lives in the
+            // streaming package, which this one does not reference and must not.
+            services.Add(new ServiceDescriptor(typeof(MediarionServiceConfiguration), configuration));
+
+            Type mediator = configuration.MediatorImplementationType ?? typeof(Mediator);
+
+            if (!typeof(IMediator).IsAssignableFrom(mediator))
+            {
+                throw new MediarionException(
+                    mediator.Name + " was named as the mediator but does not implement IMediator.");
+            }
+
+            services.Add(new ServiceDescriptor(typeof(IMediator), mediator, ServiceLifetime.Transient));
             services.Add(new ServiceDescriptor(typeof(ISender), p => p.GetRequiredService<IMediator>(), ServiceLifetime.Transient));
             services.Add(new ServiceDescriptor(typeof(IPublisher), p => p.GetRequiredService<IMediator>(), ServiceLifetime.Transient));
 
@@ -91,7 +104,13 @@ namespace Mediarion
                     assembly,
                     configuration.Lifetime,
                     configuration.AutoRegisterRequestProcessors,
-                    exceptions);
+                    exceptions,
+                    configuration.TypeEvaluator);
+            }
+
+            if (configuration.RegisterGenericHandlers)
+            {
+                GenericHandlerRegistrar.Add(services, configuration);
             }
 
             foreach (Registration processor in configuration.ProcessorRegistrations)
@@ -357,7 +376,16 @@ namespace Mediarion
             }
         }
 
-        private static void TryAddSingletonPublisher(this IServiceCollection services, INotificationPublisher? publisher)
+        /// <remarks>
+        /// An instance beats a type, because an instance cannot have been given by accident: the
+        /// only way to set it is to have built one. With neither, the handlers of a notification
+        /// run one after another.
+        /// </remarks>
+        [RequiresUnreferencedCode("A publisher named by type is built by the container.")]
+        [RequiresDynamicCode("A publisher named by type is built by the container.")]
+        private static void TryAddSingletonPublisher(
+            this IServiceCollection services,
+            MediarionServiceConfiguration configuration)
         {
             foreach (ServiceDescriptor descriptor in services)
             {
@@ -367,9 +395,32 @@ namespace Mediarion
                 }
             }
 
+            if (configuration.NotificationPublisher is INotificationPublisher instance)
+            {
+                services.Add(new ServiceDescriptor(typeof(INotificationPublisher), instance));
+                return;
+            }
+
+            if (configuration.NotificationPublisherType is Type named)
+            {
+                if (!typeof(INotificationPublisher).IsAssignableFrom(named))
+                {
+                    throw new MediarionException(
+                        named.Name + " was named as the notification publisher but does not " +
+                        "implement INotificationPublisher.");
+                }
+
+                services.Add(new ServiceDescriptor(
+                    typeof(INotificationPublisher),
+                    named,
+                    ServiceLifetime.Singleton));
+
+                return;
+            }
+
             services.Add(new ServiceDescriptor(
                 typeof(INotificationPublisher),
-                publisher ?? new ForeachAwaitPublisher()));
+                new ForeachAwaitPublisher()));
         }
 
         [RequiresUnreferencedCode("Handlers are found by walking the types in an assembly.")]
@@ -379,22 +430,29 @@ namespace Mediarion
             Assembly assembly,
             ServiceLifetime lifetime,
             bool processors,
-            ExceptionRegistrations exceptions)
+            ExceptionRegistrations exceptions,
+            Func<Type, bool> evaluator)
         {
             foreach (Type candidate in assembly.GetTypes())
             {
+                if (!evaluator(candidate))
+                {
+                    continue;
+                }
+
                 // An open generic handler is skipped. The container closes an open
                 // implementation against an open service type by matching the type parameters
                 // position for position, and a handler's do not line up: the request argument of
                 // IRequestHandler<Wrapped<T>, T> is Wrapped<T> and not T, so registering it
                 // would resolve to nothing.
                 //
-                // Refusing it here was tried and reverted. The other library registers it
-                // without complaint and fails on the first send with a container message about a
-                // missing service, so an application that starts today would stop starting — a
-                // worse failure than the one it replaces, and for a request that may never be
-                // sent. What catches it properly is MDR0004, a compile-time error at the
-                // declaration, and failing that the send says which request has no handler.
+                // Refusing it here was tried and reverted: an application that starts today
+                // would stop starting, over a request that may never be sent.
+                //
+                // Skipped here, not unsupported. Set RegisterGenericHandlers and the closing is
+                // done at registration instead, one concrete handler per candidate type, which is
+                // what the other library does under the same flag. Without it, the send says
+                // which request has no handler.
                 if (candidate.IsAbstract || candidate.IsInterface || candidate.IsGenericTypeDefinition)
                 {
                     continue;

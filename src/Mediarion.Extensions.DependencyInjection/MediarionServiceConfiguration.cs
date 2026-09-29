@@ -15,12 +15,21 @@ namespace Mediarion
         private readonly List<Type> processors = new List<Type>();
         private readonly List<Registration> behaviourRegistrations = new List<Registration>();
         private readonly List<Registration> processorRegistrations = new List<Registration>();
+        private readonly List<Type> streamBehaviours = new List<Type>();
+        private readonly List<Registration> streamBehaviourRegistrations = new List<Registration>();
 
         /// <summary>What to register for the pipeline, in the order it was asked for.</summary>
         internal IReadOnlyList<Registration> BehaviourRegistrations => behaviourRegistrations;
 
         /// <summary>What to register for the pre- and post-processors.</summary>
         internal IReadOnlyList<Registration> ProcessorRegistrations => processorRegistrations;
+
+        /// <summary>
+        /// What to register for the streaming pipeline. Read by <c>AddMediarionStreaming</c>,
+        /// because the contract these are registered against lives in the streaming package and
+        /// this one does not reference it.
+        /// </summary>
+        internal IReadOnlyList<Registration> StreamBehaviourRegistrations => streamBehaviourRegistrations;
 
         /// <summary>Gets the assemblies to scan for handlers.</summary>
         public IReadOnlyList<Assembly> Assemblies => assemblies;
@@ -30,6 +39,9 @@ namespace Mediarion
 
         /// <summary>Gets the pre- and post-processors added by name.</summary>
         public IReadOnlyList<Type> Processors => processors;
+
+        /// <summary>Gets the streaming pipeline behaviours, outermost first.</summary>
+        public IReadOnlyList<Type> StreamBehaviours => streamBehaviours;
 
         /// <summary>
         /// Gets or sets whether scanning an assembly also picks up its pre- and post-processors.
@@ -65,6 +77,92 @@ namespace Mediarion
         /// </remarks>
         public RequestExceptionActionProcessorStrategy RequestExceptionActionProcessorStrategy { get; set; }
             = RequestExceptionActionProcessorStrategy.ApplyForUnhandledExceptions;
+
+        /// <summary>
+        /// Gets or sets whether open generic handlers are closed over the scanned types and
+        /// registered. Off by default.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A container cannot register an open generic handler: it closes an open implementation
+        /// against an open service type by matching type parameters position for position, and a
+        /// handler's do not line up. Turning this on does the closing at registration instead,
+        /// one concrete handler per candidate type, which is what the other library's flag of the
+        /// same name does.
+        /// </para>
+        /// <para>
+        /// Candidates are the concrete types of the assemblies being scanned, so
+        /// <c>Wrapped&lt;Order&gt;</c> finds a handler and <c>Wrapped&lt;int&gt;</c> does not.
+        /// That is the other library's behaviour as well, and it is the only way the set is
+        /// finite.
+        /// </para>
+        /// <para>
+        /// Off by default because it is a cross product: it can register a great many services,
+        /// and the cost would land on every application that never wrote a generic handler.
+        /// </para>
+        /// </remarks>
+        public bool RegisterGenericHandlers { get; set; }
+
+        /// <summary>
+        /// Gets or sets how many type parameters an open generic handler may have before it is
+        /// left alone. Ten by default.
+        /// </summary>
+        public int MaxGenericTypeParameters { get; set; } = 10;
+
+        /// <summary>
+        /// Gets or sets how many types an open generic handler may be closed over. A hundred by
+        /// default.
+        /// </summary>
+        public int MaxTypesClosing { get; set; } = 100;
+
+        /// <summary>
+        /// Gets or sets how many closed handlers may be registered in total. 125,000 by default.
+        /// </summary>
+        public int MaxGenericTypeRegistrations { get; set; } = 125_000;
+
+        /// <summary>
+        /// Gets or sets how long, in milliseconds, closing generic handlers may take before it
+        /// stops. Fifteen seconds by default.
+        /// </summary>
+        /// <remarks>
+        /// A cross product over an assembly's types can take longer than anyone wants to wait at
+        /// start-up. This is the wall rather than a promise: what has been registered when the
+        /// time runs out stays registered.
+        /// </remarks>
+        public int RegistrationTimeout { get; set; } = 15_000;
+
+        /// <summary>
+        /// Gets or sets which types the scan is allowed to register. Everything, by default.
+        /// </summary>
+        /// <remarks>
+        /// Returning false for a type leaves it out as though it were not in the assembly. What
+        /// it is for is an assembly that holds more than one application's handlers, or a test
+        /// that wants one handler and not its neighbour.
+        /// </remarks>
+        public Func<Type, bool> TypeEvaluator { get; set; } = _ => true;
+
+        /// <summary>
+        /// Gets or sets the mediator to register. The one this library ships, when left alone.
+        /// </summary>
+        /// <remarks>
+        /// It has to implement <see cref="IMediator"/>. Deriving from the one already here is the
+        /// usual way, since that keeps the pipeline; the streaming package does exactly that.
+        /// Null rather than <c>typeof(Mediator)</c> as the default, so that reading the property
+        /// does not drag the mediator's constructors into a trimmed application that named its
+        /// own.
+        /// </remarks>
+        public Type? MediatorImplementationType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the notification publisher to register by type rather than by instance.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="NotificationPublisher"/> takes an instance you built. This takes a type the
+        /// container builds, which is what a publisher that needs something injected has to have.
+        /// When both are set, the instance wins, because an instance cannot have been given by
+        /// accident.
+        /// </remarks>
+        public Type? NotificationPublisherType { get; set; }
 
         /// <summary>Gets or sets how the handlers of one notification are run.</summary>
         /// <remarks>
@@ -393,5 +491,93 @@ namespace Mediarion
         /// <returns>This, to carry on configuring.</returns>
         public MediarionServiceConfiguration AddOpenRequestPostProcessor(Type processorType, ServiceLifetime lifetime) =>
             AddRequestPostProcessor(processorType, lifetime);
+
+        /// <summary>Adds a streaming pipeline behaviour, which may be an open generic.</summary>
+        /// <param name="behaviourType">The behaviour type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        /// <remarks>
+        /// Nothing happens until <c>AddMediarionStreaming</c> is called, which is where the
+        /// streaming contracts live. Calling this and not that registers nothing, the same way
+        /// a stream handler in the assembly is not registered until then.
+        /// </remarks>
+        public MediarionServiceConfiguration AddStreamBehavior(Type behaviourType) =>
+            AddStreamBehavior(behaviourType, ServiceLifetime.Transient);
+
+        /// <summary>Adds a streaming pipeline behaviour with a lifetime of its own.</summary>
+        /// <param name="behaviourType">The behaviour type, which may be an open generic.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddStreamBehavior(Type behaviourType, ServiceLifetime lifetime)
+        {
+            Guard.NotNull(behaviourType, nameof(behaviourType));
+            streamBehaviours.Add(behaviourType);
+            streamBehaviourRegistrations.Add(new Registration(null, behaviourType, lifetime));
+            return this;
+        }
+
+        /// <summary>Adds a streaming pipeline behaviour against the one contract named.</summary>
+        /// <param name="serviceType">The contract to register it against.</param>
+        /// <param name="implementationType">The behaviour type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddStreamBehavior(Type serviceType, Type implementationType) =>
+            AddStreamBehavior(serviceType, implementationType, ServiceLifetime.Transient);
+
+        /// <summary>Adds a streaming pipeline behaviour against the one contract named, with a lifetime.</summary>
+        /// <param name="serviceType">The contract to register it against.</param>
+        /// <param name="implementationType">The behaviour type.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddStreamBehavior(
+            Type serviceType,
+            Type implementationType,
+            ServiceLifetime lifetime)
+        {
+            Guard.NotNull(serviceType, nameof(serviceType));
+            Guard.NotNull(implementationType, nameof(implementationType));
+            streamBehaviours.Add(implementationType);
+            streamBehaviourRegistrations.Add(new Registration(serviceType, implementationType, lifetime));
+            return this;
+        }
+
+        /// <summary>Adds a streaming pipeline behaviour.</summary>
+        /// <typeparam name="TBehaviour">The behaviour type.</typeparam>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddStreamBehavior<TBehaviour>() =>
+            AddStreamBehavior(typeof(TBehaviour));
+
+        /// <summary>Adds a streaming pipeline behaviour with a lifetime of its own.</summary>
+        /// <typeparam name="TBehaviour">The behaviour type.</typeparam>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddStreamBehavior<TBehaviour>(ServiceLifetime lifetime) =>
+            AddStreamBehavior(typeof(TBehaviour), lifetime);
+
+        /// <summary>Adds a streaming pipeline behaviour against the one contract named.</summary>
+        /// <typeparam name="TService">The contract to register it against.</typeparam>
+        /// <typeparam name="TImplementation">The behaviour type.</typeparam>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddStreamBehavior<TService, TImplementation>() =>
+            AddStreamBehavior(typeof(TService), typeof(TImplementation));
+
+        /// <summary>Adds a streaming pipeline behaviour against the one contract named, with a lifetime.</summary>
+        /// <typeparam name="TService">The contract to register it against.</typeparam>
+        /// <typeparam name="TImplementation">The behaviour type.</typeparam>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddStreamBehavior<TService, TImplementation>(ServiceLifetime lifetime) =>
+            AddStreamBehavior(typeof(TService), typeof(TImplementation), lifetime);
+
+        /// <summary>Adds an open-generic streaming pipeline behaviour.</summary>
+        /// <param name="behaviourType">The open generic behaviour type.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddOpenStreamBehavior(Type behaviourType) =>
+            AddStreamBehavior(behaviourType);
+
+        /// <summary>Adds an open-generic streaming pipeline behaviour with a lifetime of its own.</summary>
+        /// <param name="behaviourType">The open generic behaviour type.</param>
+        /// <param name="lifetime">How long an instance lives.</param>
+        /// <returns>This, to carry on configuring.</returns>
+        public MediarionServiceConfiguration AddOpenStreamBehavior(Type behaviourType, ServiceLifetime lifetime) =>
+            AddStreamBehavior(behaviourType, lifetime);
     }
 }

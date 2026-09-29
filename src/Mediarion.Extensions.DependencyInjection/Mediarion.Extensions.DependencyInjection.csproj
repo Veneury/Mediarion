@@ -18,6 +18,14 @@
     <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
 
+  <!--
+    Registration is how a stream behaviour asked for in the configuration reaches the streaming
+    package, which is where the contract it goes against lives. It is not public: what it carries
+    is an implementation detail of registering, and the two packages are one library.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mediarion.Streaming" Key="$(MediarionPublicKey)" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="PolySharp" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
