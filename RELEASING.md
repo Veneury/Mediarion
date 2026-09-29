@@ -78,8 +78,18 @@ The version comes from the tag, so nothing needs editing to release. `VersionPre
   cause, delete the tag that failed, and release the next version number rather than moving the tag
   onto the fix: a tag that has already been fetched somewhere should not change what it points at.
 - **A package failed to push and others went up.** Re-run the job. The push uses
-  `--skip-duplicate`, so what is already on NuGet is left alone. The key is asked for again on the
-  re-run, since each one lasts only an hour.
+  `--skip-duplicate`, so what is already on NuGet is left alone, and the release step attaches the
+  packages to the release that is already there rather than failing to create it again. The key is
+  asked for again on the re-run, since each one lasts only an hour.
+
+- **The packages are not on NuGet and the job went green.** This happened on 0.5.0. Everything up
+  to and including the push reported success, the GitHub release was created with the four
+  packages attached, and nuget.org had nothing at that version by any route — the version index,
+  the package URL, the gallery page or search — with its own status page reporting publishing as
+  operational. Re-running the job pushed them. If it happens again, read the `Push to NuGet` step
+  rather than trusting the tick: `Your package was pushed` means it went, and
+  `already exists; skipping` means nuget.org had taken it and the wait is validation, which only
+  the package owner can see under *Manage packages*.
 - **The token exchange fails with HTTP 401**, saying no matching trust policy was found for the
   user. `NUGET_USER` does not name the nuget.org account that created the policy. This is how
   0.1.0 failed the first time: the secret held the wrong name, everything else passed, and the
