@@ -35,6 +35,8 @@ Mediarion.Mediator.Publish(object! notification, System.Threading.CancellationTo
 Mediarion.Mediator.Publish<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Mediarion.Mediator.Send(object! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<object?>!
 Mediarion.Mediator.Send<TResponse>(Mediarion.IRequest<TResponse>! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResponse>!
+Mediarion.NotificationHandler<TNotification>
+Mediarion.NotificationHandler<TNotification>.NotificationHandler() -> void
 Mediarion.NotificationHandlerExecutor
 Mediarion.NotificationPipeline
 Mediarion.NotificationPublishers.ForeachAwaitPublisher
@@ -86,6 +88,7 @@ Mediarion.Unit.Unit() -> void
 Mediarion.VoidHandlerAdapter<TRequest>
 Mediarion.VoidHandlerAdapter<TRequest>.Handle(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Mediarion.Unit>!
 Mediarion.VoidHandlerAdapter<TRequest>.VoidHandlerAdapter(Mediarion.IRequestHandler<TRequest>! inner) -> void
+abstract Mediarion.NotificationHandler<TNotification>.Handle(TNotification notification) -> void
 override Mediarion.Unit.Equals(object? obj) -> bool
 override Mediarion.Unit.GetHashCode() -> int
 override Mediarion.Unit.ToString() -> string!
