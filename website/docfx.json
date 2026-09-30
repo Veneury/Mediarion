@@ -36,6 +36,12 @@
         "files": [
           "images/**"
         ]
+      },
+      {
+        "files": [
+          "icon.png"
+        ],
+        "src": ".."
       }
     ],
     "output": "_site",
@@ -49,6 +55,8 @@
       "_appTitle": "Mediarion",
       "_lang": "en",
       "_appFooter": "Mediarion — MIT licensed mediator for .NET",
+      "_appLogoPath": "icon.png",
+      "_appFaviconPath": "icon.png",
       "_enableSearch": true,
       "_disableContribution": false,
       "_gitContribute": {
