@@ -7,6 +7,19 @@ Before v1.0, a minor version may introduce breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **The library has a logo.** A mint node with three amber satellites on the navy square the
+  sister project uses, because everything a mediator does passes through its middle. The palette
+  is that project's exactly — the three colours were read out of its own icon rather than matched
+  by eye — so the two sit together in a package list.
+- It ships inside all four packages and is the site's logo and favicon. Until now there was none
+  at all: NuGet drew the default placeholder, and the site was showing DocFX's own letter, which
+  the stylesheet had to hide.
+- `icon.svg` is the source and `icon.png` is what ships. The PNG is drawn from the same numbers at
+  eight times the size and reduced, so the two have to change together — the script that does it
+  says so.
+
 ### Fixed
 
 - **Re-running the release job no longer fails on the last step.** Creating a GitHub release

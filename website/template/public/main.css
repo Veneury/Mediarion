@@ -109,13 +109,12 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/*
-  The template ships its own mark and falls back to it when a site sets no logo. This one sets no
-  logo, and DocFX's own letter on a page that says Mediarion is worse than no mark at all, so the
-  brand is the wordmark alone.
-*/
+/* The mark is the package icon, which comes at its own size and is not a 20px template svg. */
 .navbar-brand #logo {
-  display: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  margin-right: 0.55rem;
+  border-radius: 0.35rem;
 }
 
 /* Headings carry the display face; everything else stays in the body face. */
