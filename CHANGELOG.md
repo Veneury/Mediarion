@@ -5,7 +5,7 @@ Versioned according to [SemVer 2.0](https://semver.org/).
 
 Before v1.0, a minor version may introduce breaking changes.
 
-## [Unreleased]
+## [0.6.0] - 2026-09-30
 
 ### Added
 
