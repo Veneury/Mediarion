@@ -68,6 +68,10 @@ below are real, and neither of those is the same as somebody's application depen
 - A source generator, so all of it works in an application published ahead of time
 - Six target frameworks, from `net472` to `net10.0`, and **no package dependencies** in the core
 - The test suite **runs** on `net472` and `net48`, and is not only built for them
+- The six are `netstandard2.0`, `netstandard2.1`, `net472`, `net8.0`, `net9.0` and `net10.0`.
+  NuGet lists the lowest of each family and reads it as "or higher", so the three badges on
+  the package page are these six: .NET 10 is inside, and a .NET Framework 4.8 application
+  uses the `net472` assets.
 
 ## How much the drop-in claim is worth
 
